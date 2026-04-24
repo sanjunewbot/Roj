@@ -59,40 +59,34 @@ async def help_cmd(client, message):
     await message.reply(txt)
 @Client.on_message(filters.command("ban") & filters.user(Config.ADMIN_IDS))
 async def ban_cmd(client, message):
-    target_id, days = None, 365
-    try:
-        if message.reply_to_message and (message.reply_to_message.caption or message.reply_to_message.text):
-            content = message.reply_to_message.caption or message.reply_to_message.text
-            match = re.search(r"👤 #<b>(.*?)</b>", content)
-            if match:
-                u = await db.get_user_by_nickname(match.group(1))
-                if u: target_id = u['user_id']
-            if len(message.command) > 1: days = int(message.command[1])
-        elif len(message.command) >= 3:
-            target_id, days = int(message.command[1]), int(message.command[2])
-        if target_id:
-            await db.ban_user(target_id, days)
-            await message.reply(f"✅ User {target_id} banned for {days} days.")
-            try: await client.send_message(target_id, f"🚨 <b>You have been BANNED for {days} days.</b>")
-            except: pass
-        else: await message.reply("❌ Reply to media or use: /ban [ID] [days]")
-    except ValueError: await message.reply("❌ Invalid format. IDs and days must be numbers.")
+    if not message.reply_to_message or not (message.reply_to_message.caption or message.reply_to_message.text):
+        return await message.reply("❌ Reply to a user's forwarded media or chat message to ban them.")
+    content = message.reply_to_message.caption or message.reply_to_message.text
+    match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
+    if not match: return await message.reply("❌ Could not extract Anonymous Nickname from the replied message.")
+    nickname = match.group(1).strip()
+    u = await db.get_user_by_nickname(nickname)
+    if not u: return await message.reply("❌ User not found in database.")
+    days = 365
+    if len(message.command) > 1:
+        try: days = int(message.command[1])
+        except ValueError: return await message.reply("❌ Invalid format. Days must be a number.")
+    await db.ban_user(u['user_id'], days)
+    await message.reply(f"✅ User #{nickname} banned for {days} days.")
+    try: await client.send_message(u['user_id'], f"🚨 <b>You have been BANNED for {days} days due to rule violation.</b>")
+    except: pass
 @Client.on_message(filters.command("unban") & filters.user(Config.ADMIN_IDS))
 async def unban_cmd(client, message):
-    target_id = None
-    try:
-        if message.reply_to_message and (message.reply_to_message.caption or message.reply_to_message.text):
-            content = message.reply_to_message.caption or message.reply_to_message.text
-            match = re.search(r"👤 #<b>(.*?)</b>", content)
-            if match:
-                u = await db.get_user_by_nickname(match.group(1))
-                if u: target_id = u['user_id']
-        elif len(message.command) >= 2: target_id = int(message.command[1])
-        if target_id:
-            await db.unban_user(target_id)
-            await message.reply(f"✅ User {target_id} unbanned.")
-        else: await message.reply("❌ Reply or use: /unban [ID]")
-    except ValueError: await message.reply("❌ Invalid format. ID must be a number.")
+    if not message.reply_to_message or not (message.reply_to_message.caption or message.reply_to_message.text):
+        return await message.reply("❌ Reply to a user's forwarded media or chat message to unban them.")
+    content = message.reply_to_message.caption or message.reply_to_message.text
+    match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
+    if not match: return await message.reply("❌ Could not extract Anonymous Nickname.")
+    nickname = match.group(1).strip()
+    u = await db.get_user_by_nickname(nickname)
+    if not u: return await message.reply("❌ User not found in database.")
+    await db.unban_user(u['user_id'])
+    await message.reply(f"✅ User #{nickname} unbanned.")
 @Client.on_message(filters.command("chat") & filters.user(Config.ADMIN_IDS))
 async def toggle_chat(client, message):
     if len(message.command) < 2: return await message.reply("💬 /chat on/off")
