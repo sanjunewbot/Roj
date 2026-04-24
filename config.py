@@ -18,12 +18,12 @@ import asyncio
 # Please do not remove these credits. Respect the hard work!
 # ---------------------------------------------------------
 class Config:
-    API_ID = int(os.environ.get("API_ID", ""))  
-    API_HASH = os.environ.get("API_HASH", "")
-    BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
-    MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://a:a@loude.0uy8em5.mongodb.net/?appName=LOUDE")
-    ADMIN_IDS = [7893435873, 8002345109]
-    FORCE_SUB_CHANNEL = "" #WHITOUT @
+    API_ID = int(os.environ.get("API_ID", "22135296"))  
+    API_HASH = os.environ.get("API_HASH", "b3051c4c2dfe4ef65f7146d172d3ddaf")
+    BOT_TOKEN = os.environ.get("BOT_TOKEN", "8660092184:AAEBYIU6lBaVvS8M6MK372UU9qDCExDNYAM")
+    MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://samplesamra:samplesamra@samplesamra.qtff1nr.mongodb.net/?appName=samplesamra")
+    ADMIN_IDS = [7893435873]
+    FORCE_SUB_CHANNEL = "roomjoinus" #WHITOUT @
     # ---------------------------------------------------------
 # 🤖 PROJECT: SAMRABOTZ ANONYMOUS MEDIA
 # ---------------------------------------------------------
@@ -93,8 +93,8 @@ JOIN_TEXT = (
     "• VIP Group & Mega Folder Available: 100k+ all types content.\n\n"
     "💰 <b>Upgrade Options:</b>\n"
     "• Telegram Stars, Crypto (BTC/XMR), Giftcards.\n"
-    "Contact Admin @MasterExxReal to upgrade."
-    "⚠️ If you are restricted, kindly text our support bot: @MasterxExxBot "
+    "Contact Admin to upgrade."
+    "⚠️ If you are restricted, kindly text our support bot: "
 )
 # ---------------------------------------------------------
 # 🤖 PROJECT: SAMRABOTZ ANONYMOUS MEDIA
