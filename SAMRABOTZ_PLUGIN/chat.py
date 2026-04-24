@@ -12,10 +12,10 @@ async def chat_handler(client, message):
     config = await db.get_bot_settings()
     if not config.get('chat_enabled'): return
     if user.get('chat_muted_until') and user['chat_muted_until'] > datetime.now(): return await message.reply(f"🔇 <b>You are MUTED.</b>\nExpiry: {user['chat_muted_until'].strftime('%H:%M %d/%m')}")
-    has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK] for ent in (message.entities or []))
-    if has_link or re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me)", message.text.lower()):
+    has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION] for ent in (message.entities or []))
+    if has_link or re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me|@\w+)", message.text.lower()):
         await db.mute_user(user_id, Config.MUTE_DURATION_HOURS)
-        return await message.reply(f"🚨 <b>LINK DETECTED!</b>\nYou are muted for {Config.MUTE_DURATION_HOURS} hours.")
+        return await message.reply(f"🚨 <b>LINK/USERNAME DETECTED!</b>\nYou are muted for {Config.MUTE_DURATION_HOURS} hours.")
     chat_text = f"💬 #<b>{user['nickname']}</b>\n\n{message.text}"
     all_users = await db.get_all_users()
     for target in all_users:
