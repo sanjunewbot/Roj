@@ -1,8 +1,9 @@
-import asyncio
-from pyrogram import Client, filters
+import asyncio, re
+from pyrogram import Client, filters, enums
 from pyrogram.types import CallbackQuery
 from pyrogram.errors import MessageNotModified
-from config import media_queue, album_cache, RULES_TEXT
+from datetime import datetime
+from config import Config, media_queue, album_cache, RULES_TEXT
 from database import db
 from utils import get_time_left, start_keyboard, build_start_text, ref_keyboard, back_keyboard
 @Client.on_message((filters.photo | filters.video) & filters.private)
@@ -11,6 +12,11 @@ async def handle_media(client, message):
     user = await db.get_user(user_id)
     if not user: return await message.reply("⚠️ /start bot.")
     if user.get('is_banned'): return
+    if user.get('chat_muted_until') and user['chat_muted_until'] > datetime.now(): return await message.reply(f"🔇 <b>You are MUTED.</b>\nExpiry: {user['chat_muted_until'].strftime('%H:%M %d/%m')}")
+    has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK] for ent in (message.caption_entities or []))
+    if has_link or (message.caption and re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me)", message.caption.lower())):
+        await db.mute_user(user_id, Config.MUTE_DURATION_HOURS)
+        return await message.reply(f"🚨 <b>LINK DETECTED IN CAPTION!</b>\nYou are muted for {Config.MUTE_DURATION_HOURS} hours.")
     uid = (message.photo or message.video).file_unique_id
     if await db.is_media_processed(uid): return await message.reply("❌ Duplicate!")
     await db.mark_media_processed(uid)
