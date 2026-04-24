@@ -93,7 +93,8 @@ JOIN_TEXT = (
     "• VIP Group: 200k+ content.\n\n"
     "💰 <b>Upgrade Options:</b>\n"
     "• Telegram Stars, Crypto (BTC/XMR), Giftcards.\n"
-    "Contact Admin to upgrade."
+    "Contact Admin @MasterExxReal to upgrade."
+    "⚠️ If you are restricted, kindly text our support bot: @MasterxExxBot "
 )
 # ---------------------------------------------------------
 # 🤖 PROJECT: SAMRABOTZ ANONYMOUS MEDIA
