@@ -13,10 +13,10 @@ async def handle_media(client, message):
     if not user: return await message.reply("⚠️ /start bot.")
     if user.get('is_banned'): return
     if user.get('chat_muted_until') and user['chat_muted_until'] > datetime.now(): return await message.reply(f"🔇 <b>You are MUTED.</b>\nExpiry: {user['chat_muted_until'].strftime('%H:%M %d/%m')}")
-    has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK] for ent in (message.caption_entities or []))
-    if has_link or (message.caption and re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me)", message.caption.lower())):
+    has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION] for ent in (message.caption_entities or []))
+    if has_link or (message.caption and re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me|@\w+)", message.caption.lower())):
         await db.mute_user(user_id, Config.MUTE_DURATION_HOURS)
-        return await message.reply(f"🚨 <b>LINK DETECTED IN CAPTION!</b>\nYou are muted for {Config.MUTE_DURATION_HOURS} hours.")
+        return await message.reply(f"🚨 <b>LINK/USERNAME DETECTED IN CAPTION!</b>\nYou are muted for {Config.MUTE_DURATION_HOURS} hours.")
     uid = (message.photo or message.video).file_unique_id
     if await db.is_media_processed(uid): return await message.reply("❌ Duplicate!")
     await db.mark_media_processed(uid)
