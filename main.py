@@ -5,6 +5,7 @@ from pyrogram import Client, enums
 from pyrogram.types import BotCommand
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiohttp import web
+
 # ---------------------------------------------------------
 # 🤖 PROJECT: SAMRABOTZ ANONYMOUS MEDIA
 # ---------------------------------------------------------
@@ -13,16 +14,23 @@ from aiohttp import web
 # ---------------------------------------------------------
 # Please do not remove these credits. Respect the hard work!
 # ---------------------------------------------------------
+
 from config import Config
 from database import db
-# Updated Path for your new folder name
 from SAMRABOTZ_PLUGIN.broadcast import broadcast_worker 
 
 pyrogram.utils.MIN_CHAT_ID = -999999999999
 pyrogram.utils.MIN_CHANNEL_ID = -1009999999999
 
 # Root plugins dictionary updated to SAMRABOTZ_PLUGIN
-bot = Client("SAMRABOTZ", api_id=Config.API_ID, api_hash=Config.API_HASH, bot_token=Config.BOT_TOKEN, parse_mode=enums.ParseMode.HTML, plugins=dict(root="SAMRABOTZ_PLUGIN"))
+bot = Client(
+    "SAMRABOTZ", 
+    api_id=Config.API_ID, 
+    api_hash=Config.API_HASH, 
+    bot_token=Config.BOT_TOKEN, 
+    parse_mode=enums.ParseMode.HTML, 
+    plugins=dict(root="SAMRABOTZ_PLUGIN")
+)
 
 # ☁️ Web Server for Koyeb/Heroku Health Checks
 async def health_check(request):
@@ -48,23 +56,29 @@ async def ping_server():
         except: pass
         await asyncio.sleep(5 * 60)
 
-# 🔔 2-Hour Reminder System
+# 🔥 2-Hour Reminder System (UPDATED WITH YOUR REQUESTED TEXT)
 async def run_2h_reminders():
     inactive_users = await db.get_users_to_remind()
+    
+    reminder_text = (
+        "⚠️ <b>REMINDER: AAPKA TIME 0 HO CHUKA HAI!</b>\n\n"
+        "Kripya koi media send karein, har video/media ke hisaab se "
+        "aapka time <b>30 minutes</b> badh jayega.\n\n"
+        "Media send karte hi aapka access turant chalu ho jayega! 🚀"
+    )
+    
     for u in inactive_users:
         try:
-            await bot.send_message(u['user_id'], "⚠️ <b>Time's Up!</b>\n\nYour active time is 0 mins. You will not receive any media. Share 1 media to get 30 mins time!")
+            await bot.send_message(u['user_id'], reminder_text)
             await db.update_reminded(u['user_id'])
+            print(f"🔔 [REMINDER] Sent to {u['user_id']}")
         except: pass
         await asyncio.sleep(0.1)
+
 # ---------------------------------------------------------
 # 🤖 PROJECT: SAMRABOTZ ANONYMOUS MEDIA
 # ---------------------------------------------------------
-# 👑 DEVELOPER : @SHEFFYSAMRA1
-# 📢 CHANNEL   : @SAMRABOTZ
-# ---------------------------------------------------------
-# Please do not remove these credits. Respect the hard work!
-# ---------------------------------------------------------
+
 async def expiry_check(): 
     await db.remove_expired_premium()
 
@@ -75,9 +89,7 @@ async def main():
     await bot.start()
     
     # 🚀 RESTART NOTIFICATION TO ADMINS
-    restart_text = (
-        "✅ <b>Bot Restarted!</b>"
-    )
+    restart_text = "✅ <b>Bot Restarted!</b>"
     for admin_id in Config.ADMIN_IDS:
         try:
             await bot.send_message(chat_id=admin_id, text=restart_text)
@@ -114,14 +126,15 @@ async def main():
     scheduler.start()
     
     print("🚀 Bot Started! Stylish Auto-Set Menu & Restart Alerts Loaded.")
-    await asyncio.Event().wait()
+    await pyrogram.idle()
+    await bot.stop()
+
 # ---------------------------------------------------------
 # 🤖 PROJECT: SAMRABOTZ ANONYMOUS MEDIA
 # ---------------------------------------------------------
-# 👑 DEVELOPER : @SHEFFYSAMRA1
-# 📢 CHANNEL   : @SAMRABOTZ
-# ---------------------------------------------------------
-# Please do not remove these credits. Respect the hard work!
-# ---------------------------------------------------------
+
 if __name__ == "__main__":
-    bot.run(main())
+    try:
+        asyncio.get_event_loop().run_until_complete(main())
+    except KeyboardInterrupt:
+        print("🛑 System Stopped.")
