@@ -1,0 +1,13 @@
+pyrogram==2.0.106
+tgcrypto==1.2.5
+motor==3.3.1
+apscheduler==3.10.4
+aiohttp==3.8.6
+# ---------------------------------------------------------
+# 🤖 PROJECT: SAMRABOTZ ANONYMOUS MEDIA
+# ---------------------------------------------------------
+# 👑 DEVELOPER : @SHEFFYSAMRA1
+# 📢 CHANNEL   : @SAMRABOTZ
+# ---------------------------------------------------------
+# Please do not remove these credits. Respect the hard work!
+# ---------------------------------------------------------
