@@ -4,11 +4,3 @@ motor
 pymongo
 apscheduler==3.10.4
 aiohttp>=3.9.0
-# ---------------------------------------------------------
-# 🤖 PROJECT: SAMRABOTZ ANONYMOUS MEDIA
-# ---------------------------------------------------------
-# 👑 DEVELOPER : @SHEFFYSAMRA1
-# 📢 CHANNEL   : @SAMRABOTZ
-# ---------------------------------------------------------
-# Please do not remove these credits. Respect the hard work!
-# ---------------------------------------------------------
