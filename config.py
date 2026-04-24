@@ -90,7 +90,7 @@ JOIN_TEXT = (
     "• Unlimited access – only 10 sec delay.\n"
     "• No need to stay online or share.\n"
     "• Priority speed.\n"
-    "• VIP Group: 200k+ content.\n\n"
+    "• VIP Group & Mega Folder Available: 100k+ all types content.\n\n"
     "💰 <b>Upgrade Options:</b>\n"
     "• Telegram Stars, Crypto (BTC/XMR), Giftcards.\n"
     "Contact Admin @MasterExxReal to upgrade."
