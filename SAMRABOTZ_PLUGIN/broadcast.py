@@ -22,7 +22,6 @@ async def broadcast_worker(bot: Client):
             if target['user_id'] == sender_id: 
                 continue # Sender khudka media receive nahi karega
             
-            # 🔥 YAHAN RETRY LOOP LAGAYA HAI 🔥
             while True:
                 try:
                     protect = is_restricted and not target.get('is_premium', False)
@@ -51,8 +50,14 @@ async def broadcast_worker(bot: Client):
                     print(f"⏳ [BROADCAST] FloodWait! Holding for {wait_time}s. Will retry same user...")
                     await asyncio.sleep(wait_time)
                     
+                except UserIsBlocked:
+                    # 🗑️ USER NE BLOCK KIYA HAI -> DATABASE SE UDAO
+                    print(f"🚫 [BROADCAST] User {target['user_id']} blocked the bot. Removing from DB.")
+                    await db.remove_user(target['user_id'])
+                    break
+                    
                 except Exception as e:
-                    # ❌ Agar block kar diya ya account delete ho gaya, tabhi loop break hoga
+                    # ❌ Koi aur error aayi toh skip karke aage badho
                     print(f"❌ [BROADCAST] Failed to send to {target['user_id']}: {e}")
                     break 
         
@@ -71,7 +76,6 @@ async def broadcast_cmd(client, message):
     all_users = await db.get_all_users()
     
     for u in all_users:
-        # 🔥 ADMIN BROADCAST ME BHI RETRY LOOP LAGAYA HAI 🔥
         while True:
             try:
                 await b_msg.copy(u['user_id'])
