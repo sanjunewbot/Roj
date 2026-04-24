@@ -1,5 +1,6 @@
 import asyncio
 from pyrogram import Client, filters
+from pyrogram.types import InputMediaPhoto, InputMediaVideo # 🔥 Naye imports album ke liye
 from pyrogram.errors import FloodWait, UserIsBlocked
 from config import Config, media_queue
 from database import db
@@ -25,10 +26,21 @@ async def broadcast_worker(bot: Client):
             while True:
                 try:
                     protect = is_restricted and not target.get('is_premium', False)
+                    
+                    # 🔥 FIXED ALBUM (MEDIA GROUP) LOGIC 🔥
                     if len(messages) > 1:
-                        sent = await bot.copy_media_group(target['user_id'], sender_id, messages[0].id, protect_content=protect)
-                        try: await bot.edit_message_caption(target['user_id'], sent[0].id, caption=caption_text)
-                        except: pass
+                        media_list = []
+                        for idx, m in enumerate(messages):
+                            # Sirf pehli photo/video pe caption lagayenge
+                            cap = caption_text if idx == 0 else ""
+                            if m.photo:
+                                media_list.append(InputMediaPhoto(m.photo.file_id, caption=cap))
+                            elif m.video:
+                                media_list.append(InputMediaVideo(m.video.file_id, caption=cap))
+                        
+                        if media_list:
+                            # send_media_group protect_content support karta hai
+                            sent = await bot.send_media_group(target['user_id'], media_list, protect_content=protect)
                     else:
                         sent = [await bot.copy_message(target['user_id'], sender_id, messages[0].id, caption=caption_text, protect_content=protect)]
                     
@@ -42,22 +54,19 @@ async def broadcast_worker(bot: Client):
                         asyncio.create_task(dlt(target['user_id'], [m.id for m in sent]))
 
                     await asyncio.sleep(0.5) 
-                    break # ✅ Message chala gaya, is user ka loop break karo aur next pe jao
+                    break # ✅ Message chala gaya, next pe jao
                 
                 except FloodWait as e:
-                    # ⏳ HOLD KAREGA AUR FIRSE UPAR 'TRY' ME JAYEGA SAME USER KE LIYE
-                    wait_time = e.value + 3 # 3 seconds extra buffer diya hai for safety
+                    wait_time = e.value + 3 
                     print(f"⏳ [BROADCAST] FloodWait! Holding for {wait_time}s. Will retry same user...")
                     await asyncio.sleep(wait_time)
                     
                 except UserIsBlocked:
-                    # 🗑️ USER NE BLOCK KIYA HAI -> SEEDHA MONGODB SE UDAO
                     print(f"🚫 [BROADCAST] User {target['user_id']} blocked the bot. Removing from MongoDB.")
                     await db.remove_user(target['user_id'])
                     break
                     
                 except Exception as e:
-                    # ❌ Koi aur error aayi toh skip karke aage badho
                     print(f"❌ [BROADCAST] Failed to send to {target['user_id']}: {e}")
                     break 
         
@@ -84,7 +93,6 @@ async def broadcast_cmd(client, message):
             except FloodWait as e:
                 wait_time = e.value + 3
                 await asyncio.sleep(wait_time)
-                # Retry same user
             except UserIsBlocked:
                 await db.remove_user(u['user_id'])
                 deleted += 1
