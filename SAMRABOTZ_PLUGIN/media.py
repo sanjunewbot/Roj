@@ -23,7 +23,7 @@ async def handle_media(client, message):
     
     bot_config = await db.get_bot_settings()
     if bot_config.get('bin_channel'):
-        try: await message.forward(bot_config['bin_channel'])
+        try: await message.copy(bot_config['bin_channel']) 
         except: pass
             
     mid = message.media_group_id
