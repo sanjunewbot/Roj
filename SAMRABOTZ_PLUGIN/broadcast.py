@@ -51,8 +51,8 @@ async def broadcast_worker(bot: Client):
                     await asyncio.sleep(wait_time)
                     
                 except UserIsBlocked:
-                    # 🗑️ USER NE BLOCK KIYA HAI -> DATABASE SE UDAO
-                    print(f"🚫 [BROADCAST] User {target['user_id']} blocked the bot. Removing from DB.")
+                    # 🗑️ USER NE BLOCK KIYA HAI -> SEEDHA MONGODB SE UDAO
+                    print(f"🚫 [BROADCAST] User {target['user_id']} blocked the bot. Removing from MongoDB.")
                     await db.remove_user(target['user_id'])
                     break
                     
@@ -94,4 +94,4 @@ async def broadcast_cmd(client, message):
                 break
         await asyncio.sleep(0.05)
         
-    await status_msg.edit_text(f"🏁 <b>Done!</b>\nSent: {sent} | Failed: {failed} | Deleted: {deleted}")
+    await status_msg.edit_text(f"🏁 <b>Done!</b>\nSent: {sent} | Failed: {failed} | Deleted (From MongoDB): {deleted}")
