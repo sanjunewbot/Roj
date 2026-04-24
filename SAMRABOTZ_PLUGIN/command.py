@@ -60,35 +60,39 @@ async def help_cmd(client, message):
 @Client.on_message(filters.command("ban") & filters.user(Config.ADMIN_IDS))
 async def ban_cmd(client, message):
     target_id, days = None, 365
-    if message.reply_to_message and (message.reply_to_message.caption or message.reply_to_message.text):
-        content = message.reply_to_message.caption or message.reply_to_message.text
-        match = re.search(r"👤 #<b>(.*?)</b>", content)
-        if match:
-            u = await db.get_user_by_nickname(match.group(1))
-            if u: target_id = u['user_id']
-        if len(message.command) > 1: days = int(message.command[1])
-    elif len(message.command) >= 3:
-        target_id, days = int(message.command[1]), int(message.command[2])
-    if target_id:
-        await db.ban_user(target_id, days)
-        await message.reply(f"✅ User {target_id} banned for {days} days.")
-        try: await client.send_message(target_id, f"🚨 <b>You have been BANNED for {days} days.</b>")
-        except: pass
-    else: await message.reply("❌ Reply to media or use: /ban [ID] [days]")
+    try:
+        if message.reply_to_message and (message.reply_to_message.caption or message.reply_to_message.text):
+            content = message.reply_to_message.caption or message.reply_to_message.text
+            match = re.search(r"👤 #<b>(.*?)</b>", content)
+            if match:
+                u = await db.get_user_by_nickname(match.group(1))
+                if u: target_id = u['user_id']
+            if len(message.command) > 1: days = int(message.command[1])
+        elif len(message.command) >= 3:
+            target_id, days = int(message.command[1]), int(message.command[2])
+        if target_id:
+            await db.ban_user(target_id, days)
+            await message.reply(f"✅ User {target_id} banned for {days} days.")
+            try: await client.send_message(target_id, f"🚨 <b>You have been BANNED for {days} days.</b>")
+            except: pass
+        else: await message.reply("❌ Reply to media or use: /ban [ID] [days]")
+    except ValueError: await message.reply("❌ Invalid format. IDs and days must be numbers.")
 @Client.on_message(filters.command("unban") & filters.user(Config.ADMIN_IDS))
 async def unban_cmd(client, message):
     target_id = None
-    if message.reply_to_message and (message.reply_to_message.caption or message.reply_to_message.text):
-        content = message.reply_to_message.caption or message.reply_to_message.text
-        match = re.search(r"👤 #<b>(.*?)</b>", content)
-        if match:
-            u = await db.get_user_by_nickname(match.group(1))
-            if u: target_id = u['user_id']
-    elif len(message.command) >= 2: target_id = int(message.command[1])
-    if target_id:
-        await db.unban_user(target_id)
-        await message.reply(f"✅ User {target_id} unbanned.")
-    else: await message.reply("❌ Reply or use: /unban [ID]")
+    try:
+        if message.reply_to_message and (message.reply_to_message.caption or message.reply_to_message.text):
+            content = message.reply_to_message.caption or message.reply_to_message.text
+            match = re.search(r"👤 #<b>(.*?)</b>", content)
+            if match:
+                u = await db.get_user_by_nickname(match.group(1))
+                if u: target_id = u['user_id']
+        elif len(message.command) >= 2: target_id = int(message.command[1])
+        if target_id:
+            await db.unban_user(target_id)
+            await message.reply(f"✅ User {target_id} unbanned.")
+        else: await message.reply("❌ Reply or use: /unban [ID]")
+    except ValueError: await message.reply("❌ Invalid format. ID must be a number.")
 @Client.on_message(filters.command("chat") & filters.user(Config.ADMIN_IDS))
 async def toggle_chat(client, message):
     if len(message.command) < 2: return await message.reply("💬 /chat on/off")
