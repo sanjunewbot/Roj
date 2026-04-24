@@ -1,14 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime, timedelta
 from config import Config
-# ---------------------------------------------------------
-# 🤖 PROJECT: SAMRABOTZ ANONYMOUS MEDIA
-# ---------------------------------------------------------
-# 👑 DEVELOPER : @SHEFFYSAMRA1
-# 📢 CHANNEL   : @SAMRABOTZ
-# ---------------------------------------------------------
-# Please do not remove these credits. Respect the hard work!
-# ---------------------------------------------------------
+
 client = AsyncIOMotorClient(Config.MONGO_URL)
 users = client.quitehub_bot.users
 settings = client.quitehub_bot.settings
@@ -16,30 +9,39 @@ processed_media = client.quitehub_bot.processed_media
 
 class db:
     @staticmethod
-    async def is_media_processed(unique_id): return await processed_media.find_one({"unique_id": unique_id}) is not None
+    async def is_media_processed(unique_id): 
+        return await processed_media.find_one({"unique_id": unique_id}) is not None
 
     @staticmethod
-    async def mark_media_processed(unique_id): await processed_media.insert_one({"unique_id": unique_id, "timestamp": datetime.now()})
+    async def mark_media_processed(unique_id): 
+        await processed_media.insert_one({"unique_id": unique_id, "timestamp": datetime.now()})
 
     @staticmethod
-    async def get_user(user_id): return await users.find_one({"user_id": user_id})
+    async def get_user(user_id): 
+        return await users.find_one({"user_id": user_id})
 
     @staticmethod
     async def add_user(user_id, nickname, inviter_id=None):
         await users.update_one({"user_id": user_id}, {"$set": {
-            "user_id": user_id, "nickname": nickname, "active_until": datetime.now() + timedelta(minutes=30),
-            "is_premium": False, "premium_expiry": None, "ref_balance": 0, "inviter": inviter_id,
-            "total_sent": 0, "is_banned": False, "ban_expiry": None, "last_reminded": datetime.min
+            "user_id": user_id, "nickname": nickname, 
+            "active_until": datetime.now() + timedelta(minutes=30),
+            "is_premium": False, "premium_expiry": None, 
+            "ref_balance": 0, "inviter": inviter_id,
+            "total_sent": 0, "is_banned": False, "ban_expiry": None, 
+            "last_reminded": datetime.min
         }}, upsert=True)
 
     @staticmethod
-    async def remove_user(user_id): await users.delete_one({"user_id": user_id})
+    async def remove_user(user_id): 
+        await users.delete_one({"user_id": user_id})
 
     @staticmethod
-    async def ban_user(user_id, days): await users.update_one({"user_id": user_id}, {"$set": {"is_banned": True, "ban_expiry": datetime.now() + timedelta(days=days)}})
+    async def ban_user(user_id, days): 
+        await users.update_one({"user_id": user_id}, {"$set": {"is_banned": True, "ban_expiry": datetime.now() + timedelta(days=days)}})
 
     @staticmethod
-    async def unban_user(user_id): await users.update_one({"user_id": user_id}, {"$set": {"is_banned": False, "ban_expiry": None}})
+    async def unban_user(user_id): 
+        await users.update_one({"user_id": user_id}, {"$set": {"is_banned": False, "ban_expiry": None}})
 
     @staticmethod
     async def update_activity(user_id):
@@ -68,35 +70,39 @@ class db:
             await settings.insert_one(default)
             return default
         return s
-    
-    # ---------------------------------------------------------
-# 🤖 PROJECT: SAMRABOTZ ANONYMOUS MEDIA
-# ---------------------------------------------------------
-# 👑 DEVELOPER : @SHEFFYSAMRA1
-# 📢 CHANNEL   : @SAMRABOTZ
-# ---------------------------------------------------------
-# Please do not remove these credits. Respect the hard work!
-# ---------------------------------------------------------
 
     @staticmethod
-    async def update_settings(data): await settings.update_one({"id": "global_config"}, {"$set": data}, upsert=True)
+    async def update_settings(data): 
+        await settings.update_one({"id": "global_config"}, {"$set": data}, upsert=True)
 
     @staticmethod
-    async def remove_expired_premium(): await users.update_many({"is_premium": True, "premium_expiry": {"$lt": datetime.now()}}, {"$set": {"is_premium": False, "premium_expiry": None}})
+    async def remove_expired_premium(): 
+        await users.update_many({"is_premium": True, "premium_expiry": {"$lt": datetime.now()}}, {"$set": {"is_premium": False, "premium_expiry": None}})
 
     @staticmethod
-    async def remove_premium(user_id): await users.update_one({"user_id": user_id}, {"$set": {"is_premium": False, "premium_expiry": None}})
+    async def remove_premium(user_id): 
+        await users.update_one({"user_id": user_id}, {"$set": {"is_premium": False, "premium_expiry": None}})
 
+    @staticmethod
+    async def get_all_users(): 
+        return await users.find({}).to_list(length=None)
+
+    @staticmethod
+    async def get_total_users_count(): 
+        return await users.count_documents({})
+
+    # 🔥 2-HOUR REMINDER SYSTEM LOGIC 🔥
     @staticmethod
     async def get_users_to_remind():
-        two_hours_ago = datetime.now() - timedelta(hours=2)
-        return await users.find({"is_premium": False, "is_banned": {"$ne": True}, "active_until": {"$lt": datetime.now()}, "last_reminded": {"$lt": two_hours_ago}}).to_list(length=None)
+        now = datetime.now()
+        two_hours_ago = now - timedelta(hours=2)
+        return await users.find({
+            "is_premium": False, 
+            "is_banned": {"$ne": True}, 
+            "active_until": {"$lt": now}, 
+            "last_reminded": {"$lt": two_hours_ago}
+        }).to_list(length=None)
 
     @staticmethod
-    async def update_reminded(user_id): await users.update_one({"user_id": user_id}, {"$set": {"last_reminded": datetime.now()}})
-
-    @staticmethod
-    async def get_all_users(): return await users.find({}).to_list(length=None)
-
-    @staticmethod
-    async def get_total_users_count(): return await users.count_documents({})
+    async def update_reminded(user_id): 
+        await users.update_one({"user_id": user_id}, {"$set": {"last_reminded": datetime.now()}})
