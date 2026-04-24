@@ -16,10 +16,10 @@ async def chat_handler(client, message):
     if has_link or re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me)", message.text.lower()):
         await db.mute_user(user_id, Config.MUTE_DURATION_HOURS)
         return await message.reply(f"🚨 <b>LINK DETECTED!</b>\nYou are muted for {Config.MUTE_DURATION_HOURS} hours.")
-    chat_text = f"👤 #<b>{user['nickname']}</b>\n\n{message.text}"
-    active_users = await db.get_active_users()
-    for target in active_users:
-        if target['user_id'] == user_id: continue
+    chat_text = f"💬 #<b>{user['nickname']}</b>\n\n{message.text}"
+    all_users = await db.get_all_users()
+    for target in all_users:
+        if target['user_id'] == user_id or target.get('is_banned'): continue
         while True:
             try:
                 await client.send_message(target['user_id'], chat_text)
