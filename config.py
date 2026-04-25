@@ -9,7 +9,6 @@ class Config:
     MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://samplesamra:samplesamra@samplesamra.qtff1nr.mongodb.net/?appName=samplesamra")
     
     ADMIN_IDS = [7893435873]
-    # You can put a channel ID (e.g., -100123456789) or username (e.g., roomjoinus or @roomjoinus)
     FORCE_SUB_CHANNEL = "roomjoinus" 
     
     PORT = int(os.environ.get("PORT", 8080))
@@ -23,34 +22,36 @@ media_queue = asyncio.Queue()
 album_cache = {} 
 admin_states = {} 
 
+# --- Detailed Templates ---
 START_TEXT_TEMPLATE = (
     "🚀 <b>Welcome to the Anonymous Media Exchange!</b>\n\n"
-    "Share media and it will be forwarded to all active users anonymously!\n"
-    "Each media sent grants you an additional 30 minutes (maximum 24 hours).\n\n"
-    "👤 <b>Your Anonymous Identity:</b> {name}\n"
-    "⏳ <b>Time Remaining:</b> {time}\n\n"
-    "🛠 <b>Available Commands:</b>\n"
-    "• /start - Show this dashboard\n"
-    "• /register [name] - Change your identity\n"
-    "• /me - Check detailed statistics\n"
-    "• /referral - Get your invite link\n"
-    "• /join - View VIP benefits"
+    "Your gateway to high-speed anonymous media sharing.\n\n"
+    "👤 <b>Your Identity:</b> {name}\n"
+    "⏳ <b>Access Time:</b> {time}\n"
+    "⭐ <b>Plan:</b> {status}\n\n"
+    "🛠 <b>Quick Commands:</b>\n"
+    "• /me - Full Profile Details\n"
+    "• /referral - Earn VIP Access\n"
+    "• /help - All Commands List"
 )
 
-RULES_TEXT = (
-    "📜 <b>Bot Rules & Guidelines:</b>\n\n"
-    "Share high-quality content you would love to receive. Keep the media flowing.\n\n"
-    "⚠️ <b>STRICTLY PROHIBITED:</b>\n"
-    "• No offensive language or harassment\n"
-    "• No pedophilia or child abuse material (CP)\n"
-    "• No scamming or unauthorized promotions\n"
-    "• No obscene behavior or incest\n"
-    "• No animal pornography\n"
-    "• No unsolicited pictures of genitalia\n\n"
-    "🚨 <b>Penalty for violation: PERMANENT BAN.</b>"
+ME_TEXT_TEMPLATE = (
+    "📊 <b>USER PROFILE DASHBOARD</b>\n"
+    "━━━━━━━━━━━━━━━━━━\n"
+    "👤 <b>Nickname:</b> <code>#{name}</code>\n"
+    "🆔 <b>User ID:</b> <code>{user_id}</code>\n"
+    "⭐ <b>Account:</b> {status}\n"
+    "━━━━━━━━━━━━━━━━━━\n"
+    "📈 <b>Total Media Sent:</b> <code>{total_sent}</code>\n"
+    "👥 <b>Referral Points:</b> <code>{ref_bal}</code>\n"
+    "⏳ <b>Active Time Left:</b> <code>{time_left}</code>\n"
+    "{expiry_info}"
+    "━━━━━━━━━━━━━━━━━━\n"
+    "<i>Tip: Send media to increase your time!</i>"
 )
 
 JOIN_TEXT = (
+)
     "💎 <b>VIP Premium vs FREE Tier</b>\n\n"
     "🆓 <b>Free Tier</b>\n"
     "• 30-second delay for media delivery.\n"
