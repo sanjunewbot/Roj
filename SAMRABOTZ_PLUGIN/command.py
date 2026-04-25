@@ -11,6 +11,14 @@ from utils import check_fsub, parse_duration, build_start_text, start_keyboard, 
 ADJECTIVES = ["Foggy", "Silent", "Hidden", "Dark", "Ghost", "Mystic", "Shadow", "Secret", "Neon", "Cyber"]
 NOUNS = ["Wolf", "Raven", "Sniper", "Hunter", "Storm", "Ninja", "Phantom", "Dragon", "Specter", "Viper"]
 
+@Client.on_chat_join_request()
+async def handle_join_request(client, message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    await db.add_requested_channel(user_id, chat_id)
+    try: await client.send_message(user_id, "✅ <b>Join request registered!</b> You now have access. Please type /start to continue.")
+    except: pass
+
 @Client.on_message(filters.command("start") & filters.private)
 async def start_cmd(client, message):
     user_id = message.from_user.id
@@ -37,11 +45,14 @@ async def start_cmd(client, message):
                         except: pass
         except: pass
 
-    is_joined, link_or_status = await check_fsub(client, user_id)
+    is_joined, result = await check_fsub(client, user_id)
     if not is_joined:
-        if link_or_status == "not_admin":
-            return await message.reply("⚠️ <b>System Error:</b> Bot is not an admin in the mandatory channel. Please contact support.")
-        return await message.reply("❌ <b>Access Denied!</b>\nJoin our official channel to continue.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📢 Join Channel", url=link_or_status)]]))
+        if result == "not_admin":
+            return await message.reply("⚠️ <b>System Error:</b> Bot is not an admin in the mandatory channel(s). Please contact support.")
+        buttons = []
+        for item in result:
+            buttons.append([InlineKeyboardButton(item["text"], url=item["url"])])
+        return await message.reply("❌ <b>Access Denied!</b>\nYou must join or send join requests to all mandatory networks below.\n\n<i>Note: Once you request, come back and type /start</i>", reply_markup=InlineKeyboardMarkup(buttons))
 
     if not user:
         random_name = f"{random.choice(ADJECTIVES)}{random.choice(NOUNS)}{random.randint(1000, 9999)}"
@@ -119,7 +130,8 @@ async def help_cmd(client, message):
             "• /binch [id] - Set Backup Bin\n"
             "• /wait on/off - Registration Lock\n"
             "• /pmdlt on [secs] - Auto Purge Setup\n"
-            "• /ref on/off - Referral Config"
+            "• /ref on/off - Referral Config\n"
+            "• /frsub on/off - Multi-Request Channels"
         )
     await message.reply(txt)
 
@@ -321,6 +333,15 @@ async def toggle_dlt(client, message):
         await message.reply(f"✅ <b>Auto-Purge Protocol:</b> {'ONLINE' if mode else 'OFFLINE'}")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
+@Client.on_message(filters.command("frsub") & filters.user(Config.ADMIN_IDS))
+async def frsub_cmd_init(client, message):
+    if len(message.command) < 2: return await message.reply("⚙️ <b>Syntax:</b> `/frsub on` or `/frsub off`")
+    if message.command[1].lower() == "off":
+        await db.update_settings({"frsub_enabled": False})
+        return await message.reply("✅ <b>Multi-Request Force Sub OFFLINE.</b>")
+    admin_states[message.from_user.id] = {"step": "frsub_1"}
+    await message.reply("🔢 <b>Setup:</b> Send me your multiple request channel IDs separated by space.\nExample: `-100xxxxxxx -100yyyyyyy`")
+
 @Client.on_message(filters.command("ref") & filters.user(Config.ADMIN_IDS))
 async def ref_cmd_init(client, message):
     if len(message.command) < 2: return await message.reply("⚙️ <b>Syntax:</b> `/ref on` or `/ref off`")
@@ -330,7 +351,7 @@ async def ref_cmd_init(client, message):
     admin_states[message.from_user.id] = {"step": "ref_1"}
     await message.reply("🔢 <b>Initiating Setup:</b> Enter the required number of referrals for a reward.")
 
-@Client.on_message(filters.text & filters.user(Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat"]))
+@Client.on_message(filters.text & filters.user(Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "frsub"]))
 async def admin_state_handler(client, message):
     uid = message.from_user.id
     if uid not in admin_states: return
@@ -353,3 +374,14 @@ async def admin_state_handler(client, message):
             admin_states.pop(uid, None)
             await message.reply("✅ <b>Referral Protocol Configuration Complete. System is now active.</b>")
         else: await message.reply("❌ <b>Invalid Formatting:</b> Please utilize proper syntax (e.g., 7d, 1M).")
+        
+    elif state.get("step") == "frsub_1":
+        channel_ids = []
+        for x in message.text.split():
+            if x.lstrip('-').isdigit():
+                channel_ids.append(int(x))
+        if not channel_ids:
+            return await message.reply("❌ <b>Error:</b> No valid IDs found. Use format: `-100xxxxx -100yyyyy`")
+        await db.update_settings({"frsub_enabled": True, "frsub_channels": channel_ids})
+        admin_states.pop(uid, None)
+        await message.reply(f"✅ <b>Multi-Request Force Sub ONLINE!</b>\nChannels Added & Monitoring: {len(channel_ids)}")
