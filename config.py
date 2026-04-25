@@ -22,7 +22,6 @@ media_queue = asyncio.Queue()
 album_cache = {} 
 admin_states = {} 
 
-# --- Detailed Templates ---
 START_TEXT_TEMPLATE = (
     "🚀 <b>Welcome to the Anonymous Media Exchange!</b>\n\n"
     "Your gateway to high-speed anonymous media sharing.\n\n"
@@ -50,8 +49,20 @@ ME_TEXT_TEMPLATE = (
     "<i>Tip: Send media to increase your time!</i>"
 )
 
-JOIN_TEXT = (
+RULES_TEXT = (
+    "📜 <b>Bot Rules & Guidelines:</b>\n\n"
+    "Share high-quality content you would love to receive. Keep the media flowing.\n\n"
+    "⚠️ <b>STRICTLY PROHIBITED:</b>\n"
+    "• No offensive language or harassment\n"
+    "• No pedophilia or child abuse material (CP)\n"
+    "• No scamming or unauthorized promotions\n"
+    "• No obscene behavior or incest\n"
+    "• No animal pornography\n"
+    "• No unsolicited pictures of genitalia\n\n"
+    "🚨 <b>Penalty for violation: PERMANENT BAN.</b>"
 )
+
+JOIN_TEXT = (
     "💎 <b>VIP Premium vs FREE Tier</b>\n\n"
     "🆓 <b>Free Tier</b>\n"
     "• 30-second delay for media delivery.\n"
