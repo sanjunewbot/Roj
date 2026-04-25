@@ -58,10 +58,13 @@ async def handle_media(client, message):
             album_cache[mid] = []
             
             async def collect():
-                await asyncio.sleep(3)
-                await media_queue.put({'sender_id': user_id, 'messages': album_cache.pop(mid)})
-                await db.update_activity(user_id)
-                await client.send_message(user_id, "✅ <b>Media Album Processed Successfully!</b> Your time has been extended by 30 minutes.")
+                # Increased wait time to 7 seconds to safely collect large albums
+                await asyncio.sleep(7)
+                messages = album_cache.pop(mid, None)
+                if messages:
+                    await media_queue.put({'sender_id': user_id, 'messages': messages})
+                    await db.update_activity(user_id)
+                    await client.send_message(user_id, "✅ <b>Media Album Processed Successfully!</b> Your time has been extended by 30 minutes.")
                 
             asyncio.create_task(collect())
             
