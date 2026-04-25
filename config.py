@@ -9,6 +9,7 @@ class Config:
     PORT = int(os.environ.get("PORT", 8080))
     PING_URL = os.environ.get("PING_URL", "http://0.0.0.0:8080")
     MUTE_DURATION_HOURS = 12
+    MUTE_PENALTY_MINUTES = 2
 START_TIME = time.time()
 media_queue = asyncio.Queue()
 album_cache = {} 
