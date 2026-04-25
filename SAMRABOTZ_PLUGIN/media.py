@@ -12,11 +12,12 @@ async def handle_media(client, message):
     user = await db.get_user(user_id)
     if not user: return await message.reply("⚠️ /start bot.")
     if user.get('is_banned'): return
-    if user.get('chat_muted_until') and user['chat_muted_until'] > datetime.now(): return await message.reply(f"🔇 <b>You are MUTED.</b>\nExpiry: {user['chat_muted_until'].strftime('%H:%M %d/%m')}")
-    has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION] for ent in (message.caption_entities or []))
-    if has_link or (message.caption and re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me|@\w+)", message.caption.lower())):
-        await db.mute_user(user_id, Config.MUTE_DURATION_HOURS)
-        return await message.reply(f"🚨 <b>LINK/USERNAME DETECTED IN CAPTION!</b>\nYou are muted for {Config.MUTE_DURATION_HOURS} hours.")
+    if user.get('chat_muted_until') and user['chat_muted_until'] > datetime.now(): return await message.reply(f"🔇 <b>You are MUTED.</b>\nExpiry: {user['chat_muted_until'].strftime('%H:%M %d/%m')}\nYou cannot send or receive media.")
+    has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION, enums.MessageEntityType.CODE, enums.MessageEntityType.PRE] for ent in (message.caption_entities or []))
+    is_forward = message.forward_date is not None or message.forward_from_chat is not None or message.forward_from is not None
+    if has_link or is_forward or (message.caption and re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me|@\w+)", message.caption.lower())):
+        await db.mute_user_time(user_id, Config.MUTE_PENALTY_MINUTES)
+        return await message.reply(f"🚨 <b>LINK/FORWARD DETECTED IN CAPTION!</b>\nYou are muted for {Config.MUTE_PENALTY_MINUTES} minutes. Sending & Receiving Media Disabled.")
     uid = (message.photo or message.video).file_unique_id
     if await db.is_media_processed(uid): return await message.reply("❌ Duplicate!")
     await db.mark_media_processed(uid)
