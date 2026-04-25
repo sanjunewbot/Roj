@@ -12,12 +12,10 @@ async def chat_handler(client, message):
     user_id = message.from_user.id
     user = await db.get_user(user_id)
     
-    if not user or user.get('is_banned'):
-        return
+    if not user or user.get('is_banned'): return
         
     config = await db.get_bot_settings()
     
-    # Notify users if the global chat is off
     if not config.get('chat_enabled'):
         if user_id not in Config.ADMIN_IDS:
             return await message.reply("💬 <b>Global chat is currently OFF. The system is only accepting videos and photos.</b>")
@@ -27,7 +25,6 @@ async def chat_handler(client, message):
     if user.get('chat_muted_until') and user['chat_muted_until'] > datetime.now():
         return await message.reply(f"🔇 <b>ACCESS DENIED: You are currently muted.</b>\nRestriction lifts at: {user['chat_muted_until'].strftime('%H:%M %d/%m')}")
         
-    # Admin Immunity: Only penalize non-admins for links
     if user_id not in Config.ADMIN_IDS:
         has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION, enums.MessageEntityType.CODE, enums.MessageEntityType.PRE] for ent in (message.entities or []))
         is_forward = message.forward_date is not None or message.forward_from_chat is not None or message.forward_from is not None
@@ -43,16 +40,11 @@ async def chat_handler(client, message):
     all_users = await db.get_all_users()
     
     for target in all_users:
-        if target['user_id'] == user_id or target.get('is_banned') or (target.get('chat_muted_until') and target['chat_muted_until'] > datetime.now()):
-            continue
-            
+        if target['user_id'] == user_id or target.get('is_banned') or (target.get('chat_muted_until') and target['chat_muted_until'] > datetime.now()): continue
         while True:
             try:
                 await client.send_message(target['user_id'], chat_text)
                 break
-            except FloodWait as e:
-                await asyncio.sleep(e.value + 3)
-            except Exception:
-                break
-                
+            except FloodWait as e: await asyncio.sleep(e.value + 3)
+            except Exception: break
         await asyncio.sleep(0.05)
