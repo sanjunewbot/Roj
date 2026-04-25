@@ -9,7 +9,7 @@ class Config:
     MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://samplesamra:samplesamra@samplesamra.qtff1nr.mongodb.net/?appName=samplesamra")
     
     ADMIN_IDS = [7893435873]
-    FORCE_SUB_CHANNEL = "roomjoinus" 
+    FORCE_SUB_CHANNEL = "-1003843949677" 
     
     PORT = int(os.environ.get("PORT", 8080))
     PING_URL = os.environ.get("PING_URL", "http://0.0.0.0:8080")
