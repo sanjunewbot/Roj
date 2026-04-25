@@ -333,23 +333,30 @@ async def toggle_dlt(client, message):
         await message.reply(f"✅ <b>Auto-Purge Protocol:</b> {'ONLINE' if mode else 'OFFLINE'}")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
+# Added try-except wrapper here to ensure /frsub doesn't fail silently
 @Client.on_message(filters.command("frsub") & filters.user(Config.ADMIN_IDS))
 async def frsub_cmd_init(client, message):
-    if len(message.command) < 2: return await message.reply("⚙️ <b>Syntax:</b> `/frsub on` or `/frsub off`")
-    if message.command[1].lower() == "off":
-        await db.update_settings({"frsub_enabled": False})
-        return await message.reply("✅ <b>Multi-Request Force Sub OFFLINE.</b>")
-    admin_states[message.from_user.id] = {"step": "frsub_1"}
-    await message.reply("🔢 <b>Setup:</b> Send me your multiple request channel IDs separated by space.\nExample: `-100xxxxxxx -100yyyyyyy`")
+    try:
+        if len(message.command) < 2: return await message.reply("⚙️ <b>Syntax:</b> `/frsub on` or `/frsub off`")
+        if message.command[1].lower() == "off":
+            await db.update_settings({"frsub_enabled": False})
+            return await message.reply("✅ <b>Multi-Request Force Sub OFFLINE.</b>")
+        admin_states[message.from_user.id] = {"step": "frsub_1"}
+        await message.reply("🔢 <b>Setup:</b> Send me your multiple request channel IDs separated by space.\nExample: `-100xxxxxxx -100yyyyyyy`")
+    except Exception as e:
+        await message.reply(f"❌ <b>System Fault in frsub:</b> {e}")
 
 @Client.on_message(filters.command("ref") & filters.user(Config.ADMIN_IDS))
 async def ref_cmd_init(client, message):
-    if len(message.command) < 2: return await message.reply("⚙️ <b>Syntax:</b> `/ref on` or `/ref off`")
-    if message.command[1].lower() == "off":
-        await db.update_settings({"ref_system": False})
-        return await message.reply("✅ <b>Referral System Offline.</b>")
-    admin_states[message.from_user.id] = {"step": "ref_1"}
-    await message.reply("🔢 <b>Initiating Setup:</b> Enter the required number of referrals for a reward.")
+    try:
+        if len(message.command) < 2: return await message.reply("⚙️ <b>Syntax:</b> `/ref on` or `/ref off`")
+        if message.command[1].lower() == "off":
+            await db.update_settings({"ref_system": False})
+            return await message.reply("✅ <b>Referral System Offline.</b>")
+        admin_states[message.from_user.id] = {"step": "ref_1"}
+        await message.reply("🔢 <b>Initiating Setup:</b> Enter the required number of referrals for a reward.")
+    except Exception as e:
+        await message.reply(f"❌ <b>System Fault:</b> {e}")
 
 @Client.on_message(filters.text & filters.user(Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "frsub"]))
 async def admin_state_handler(client, message):
