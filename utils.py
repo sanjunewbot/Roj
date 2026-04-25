@@ -11,8 +11,11 @@ async def check_fsub(client, user_id):
         return True, None
         
     chat_id = Config.FORCE_SUB_CHANNEL
-    if isinstance(chat_id, str) and not chat_id.startswith("-100"):
-        if not chat_id.startswith("@"):
+    if isinstance(chat_id, str):
+        # Automatically convert private channel string ID to integer
+        if chat_id.startswith("-100") and chat_id.replace("-", "").isdigit():
+            chat_id = int(chat_id)
+        elif not chat_id.startswith("@") and not chat_id.lstrip("-").isdigit():
             chat_id = f"@{chat_id}"
 
     try:
@@ -35,7 +38,7 @@ async def check_fsub(client, user_id):
             invite_link = await chat.export_invite_link()
         return False, invite_link
     except Exception:
-        # Fallback if link cannot be generated
+        # Fallback if the link cannot be generated or bot lacks privileges
         return False, "not_admin"
 
 def parse_duration(duration_str):
