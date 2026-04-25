@@ -113,10 +113,10 @@ async def help_cmd(client, message):
             "\n<b>👑 ADMINISTRATOR OVERRIDE:</b>\n"
             "🎁 <code>/add #Name 30d</code> - Grant Premium\n"
             "✂️ <code>/rem_prem #Name</code> - Revoke Premium\n"
-            "🔇 <code>/mute [days] [reason]</code> - Silence User (Reply)\n"
-            "🔊 <code>/unmute</code> - Remove Silence (Reply)\n"
-            "🔨 <code>/ban [days] [reason]</code> - Exclude User (Reply)\n"
-            "🕊️ <code>/unban</code> - Pardon User (Reply)\n"
+            "🔇 <code>/mute [#Name] [days] [reason]</code> - Silence User\n"
+            "🔊 <code>/unmute [#Name]</code> - Remove Silence\n"
+            "🔨 <code>/ban [#Name] [days] [reason]</code> - Exclude User\n"
+            "🕊️ <code>/unban [#Name]</code> - Pardon User\n"
             "🔒 <code>/restrict on/off</code> - Toggle Media Protection\n"
             "🗑️ <code>/binch [id]</code> - Configure Backup Archive\n"
             "⏱️ <code>/pmdlt on [secs]</code> - Configure Auto-Purge\n"
@@ -131,20 +131,29 @@ async def help_cmd(client, message):
 @Client.on_message(filters.command("mute") & filters.user(Config.ADMIN_IDS))
 async def mute_cmd(client, message):
     try:
-        if not message.reply_to_message or not (message.reply_to_message.caption or message.reply_to_message.text):
-            return await message.reply("❌ <b>Error:</b> Please reply to a user's forwarded media or chat message to enforce a mute.")
+        nick = None
+        args = []
+        
+        if len(message.command) > 1 and message.command[1].startswith("#"):
+            nick = message.command[1].replace("#", "")
+            args = message.command[2:]
+        elif message.reply_to_message and (message.reply_to_message.caption or message.reply_to_message.text):
+            content = message.reply_to_message.caption or message.reply_to_message.text
+            match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
+            if match:
+                nick = match.group(1).strip()
+            args = message.command[1:]
             
-        content = message.reply_to_message.caption or message.reply_to_message.text
-        match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
-        if not match:
-            return await message.reply("❌ <b>Error:</b> Unable to extract the Anonymous Identity from the text.")
+        if not nick:
+            return await message.reply("❌ <b>Error:</b> Please reply to a message or use `/mute #Nickname`.")
             
-        nick = match.group(1).strip()
         u = await db.get_user_by_nickname(nick)
         if not u:
-            return await message.reply("❌ <b>Error:</b> User record not found in the archive.")
+            return await message.reply(f"❌ <b>Error:</b> Identity #{nick} not found.")
             
-        args = message.command[1:]
+        if u['user_id'] in Config.ADMIN_IDS:
+            return await message.reply("❌ <b>Action Denied:</b> Administrators possess system immunity and cannot be restricted.")
+            
         days, reason = 1, "Violation of Network Guidelines"
         
         if len(args) > 0 and args[0].isdigit():
@@ -159,7 +168,7 @@ async def mute_cmd(client, message):
         try:
             await client.send_message(
                 u['user_id'], 
-                f"🔇 <b>System Alert: You have been MUTED for {days} days.</b>\n📝 <b>Reason:</b> {reason}\n<i>Transmitting and receiving media has been temporarily disabled for your account.</i>"
+                f"🔇 <b>System Alert: You have been MUTED for {days} days.</b>\n📝 <b>Reason:</b> {reason}\n<i>Transmitting and receiving media has been temporarily disabled.</i>"
             )
         except:
             pass
@@ -170,15 +179,19 @@ async def mute_cmd(client, message):
 @Client.on_message(filters.command("unmute") & filters.user(Config.ADMIN_IDS))
 async def unmute_cmd(client, message):
     try:
-        if not message.reply_to_message:
-            return await message.reply("❌ <b>Error:</b> Please reply to the user's message to revoke the mute.")
+        nick = None
+        if len(message.command) > 1 and message.command[1].startswith("#"):
+            nick = message.command[1].replace("#", "")
+        elif message.reply_to_message:
+            content = message.reply_to_message.caption or message.reply_to_message.text
+            match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
+            if match:
+                nick = match.group(1).strip()
+                
+        if not nick:
+            return await message.reply("❌ <b>Error:</b> Please reply to a message or use `/unmute #Nickname`.")
             
-        content = message.reply_to_message.caption or message.reply_to_message.text
-        match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
-        if not match:
-            return await message.reply("❌ <b>Error:</b> Unable to extract Identity.")
-            
-        u = await db.get_user_by_nickname(match.group(1).strip())
+        u = await db.get_user_by_nickname(nick)
         if not u:
             return await message.reply("❌ <b>Error:</b> User record not found.")
             
@@ -196,20 +209,29 @@ async def unmute_cmd(client, message):
 @Client.on_message(filters.command("ban") & filters.user(Config.ADMIN_IDS))
 async def ban_cmd(client, message):
     try:
-        if not message.reply_to_message or not (message.reply_to_message.caption or message.reply_to_message.text):
-            return await message.reply("❌ <b>Error:</b> Please reply to a user's message to execute a ban.")
+        nick = None
+        args = []
+        
+        if len(message.command) > 1 and message.command[1].startswith("#"):
+            nick = message.command[1].replace("#", "")
+            args = message.command[2:]
+        elif message.reply_to_message and (message.reply_to_message.caption or message.reply_to_message.text):
+            content = message.reply_to_message.caption or message.reply_to_message.text
+            match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
+            if match:
+                nick = match.group(1).strip()
+            args = message.command[1:]
             
-        content = message.reply_to_message.caption or message.reply_to_message.text
-        match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
-        if not match:
-            return await message.reply("❌ <b>Error:</b> Unable to extract Identity.")
+        if not nick:
+            return await message.reply("❌ <b>Error:</b> Please reply to a message or use `/ban #Nickname`.")
             
-        nick = match.group(1).strip()
         u = await db.get_user_by_nickname(nick)
         if not u:
-            return await message.reply("❌ <b>Error:</b> User record not found.")
+            return await message.reply(f"❌ <b>Error:</b> Identity #{nick} not found.")
             
-        args = message.command[1:]
+        if u['user_id'] in Config.ADMIN_IDS:
+            return await message.reply("❌ <b>Action Denied:</b> Administrators possess system immunity and cannot be banished.")
+            
         days, reason = 365, "Severe Protocol Violation"
         
         if len(args) > 0 and args[0].isdigit():
@@ -232,15 +254,19 @@ async def ban_cmd(client, message):
 @Client.on_message(filters.command("unban") & filters.user(Config.ADMIN_IDS))
 async def unban_cmd(client, message):
     try:
-        if not message.reply_to_message:
-            return await message.reply("❌ <b>Error:</b> Please reply to the user's message to pardon them.")
+        nick = None
+        if len(message.command) > 1 and message.command[1].startswith("#"):
+            nick = message.command[1].replace("#", "")
+        elif message.reply_to_message:
+            content = message.reply_to_message.caption or message.reply_to_message.text
+            match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
+            if match:
+                nick = match.group(1).strip()
+                
+        if not nick:
+            return await message.reply("❌ <b>Error:</b> Please reply to a message or use `/unban #Nickname`.")
             
-        content = message.reply_to_message.caption or message.reply_to_message.text
-        match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
-        if not match:
-            return await message.reply("❌ <b>Error:</b> Unable to extract Identity.")
-            
-        u = await db.get_user_by_nickname(match.group(1).strip())
+        u = await db.get_user_by_nickname(nick)
         if not u:
             return await message.reply("❌ <b>Error:</b> User record not found.")
             
