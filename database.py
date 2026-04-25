@@ -40,10 +40,15 @@ class db:
                 "is_banned": False, 
                 "ban_expiry": None, 
                 "last_reminded": datetime.min, 
-                "chat_muted_until": None
+                "chat_muted_until": None,
+                "requested_channels": []
             }}, 
             upsert=True
         )
+
+    @staticmethod
+    async def add_requested_channel(user_id, chat_id):
+        await users.update_one({"user_id": user_id}, {"$addToSet": {"requested_channels": chat_id}})
 
     @staticmethod
     async def remove_user(user_id):
@@ -106,7 +111,9 @@ class db:
                 "ref_time_str": "7d", 
                 "registration_open": True, 
                 "media_restriction": False, 
-                "chat_enabled": False
+                "chat_enabled": False,
+                "frsub_enabled": False,
+                "frsub_channels": []
             }
             await settings.insert_one(default)
             return default
