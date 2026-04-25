@@ -27,16 +27,18 @@ async def handle_media(client, message):
             "Transmission and reception of media files are disabled."
         )
         
-    has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION, enums.MessageEntityType.CODE, enums.MessageEntityType.PRE] for ent in (message.caption_entities or []))
-    is_forward = message.forward_date is not None or message.forward_from_chat is not None or message.forward_from is not None
-    
-    if has_link or is_forward or (message.caption and re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me|@\w+)", message.caption.lower())):
-        await db.mute_user_time(user_id, Config.MUTE_PENALTY_MINUTES)
-        return await message.reply(
-            f"🚨 <b>SECURITY VIOLATION: UNAUTHORIZED LINK DETECTED IN CAPTION!</b>\n"
-            f"Your account has been temporarily muted for {Config.MUTE_PENALTY_MINUTES} minutes. Sending and receiving media has been disabled."
-        )
+    # Admin Immunity: Only penalize non-admins for links in captions
+    if user_id not in Config.ADMIN_IDS:
+        has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION, enums.MessageEntityType.CODE, enums.MessageEntityType.PRE] for ent in (message.caption_entities or []))
+        is_forward = message.forward_date is not None or message.forward_from_chat is not None or message.forward_from is not None
         
+        if has_link or is_forward or (message.caption and re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me|@\w+)", message.caption.lower())):
+            await db.mute_user_time(user_id, Config.MUTE_PENALTY_MINUTES)
+            return await message.reply(
+                f"🚨 <b>SECURITY VIOLATION: UNAUTHORIZED LINK DETECTED IN CAPTION!</b>\n"
+                f"Your account has been temporarily muted for {Config.MUTE_PENALTY_MINUTES} minutes. Sending and receiving media has been disabled."
+            )
+            
     uid = (message.photo or message.video).file_unique_id
     if await db.is_media_processed(uid):
         return await message.reply("❌ <b>Data Error: Duplicate media detected.</b>")
