@@ -15,8 +15,7 @@ class db:
     @staticmethod
     async def get_user_by_nickname(nickname): return await users.find_one({"nickname": nickname})
     @staticmethod
-    async def add_user(user_id, nickname, inviter_id=None):
-        await users.update_one({"user_id": user_id}, {"$set": {"user_id": user_id, "nickname": nickname, "active_until": datetime.now() + timedelta(minutes=30), "is_premium": False, "premium_expiry": None, "ref_balance": 0, "inviter": inviter_id, "total_sent": 0, "is_banned": False, "ban_expiry": None, "last_reminded": datetime.min, "chat_muted_until": None}}, upsert=True)
+    async def add_user(user_id, nickname, inviter_id=None): await users.update_one({"user_id": user_id}, {"$set": {"user_id": user_id, "nickname": nickname, "active_until": datetime.now() + timedelta(minutes=30), "is_premium": False, "premium_expiry": None, "ref_balance": 0, "inviter": inviter_id, "total_sent": 0, "is_banned": False, "ban_expiry": None, "last_reminded": datetime.min, "chat_muted_until": None}}, upsert=True)
     @staticmethod
     async def remove_user(user_id): await users.delete_one({"user_id": user_id})
     @staticmethod
@@ -25,6 +24,10 @@ class db:
     async def unban_user(user_id): await users.update_one({"user_id": user_id}, {"$set": {"is_banned": False, "ban_expiry": None}})
     @staticmethod
     async def mute_user(user_id, hours): await users.update_one({"user_id": user_id}, {"$set": {"chat_muted_until": datetime.now() + timedelta(hours=hours)}})
+    @staticmethod
+    async def mute_user_time(user_id, minutes): await users.update_one({"user_id": user_id}, {"$set": {"chat_muted_until": datetime.now() + timedelta(minutes=minutes)}})
+    @staticmethod
+    async def unmute_user(user_id): await users.update_one({"user_id": user_id}, {"$set": {"chat_muted_until": None}})
     @staticmethod
     async def update_activity(user_id):
         user = await db.get_user(user_id)
