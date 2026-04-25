@@ -15,7 +15,7 @@ async def broadcast_worker(bot: Client):
         if config['pm_dlt']: caption_text += f"\n\n⏱ <i>Auto-Deletes in {config['dlt_time']}s!</i>"
         active_users = await db.get_active_users()
         for target in active_users:
-            if target['user_id'] == sender_id: continue
+            if target['user_id'] == sender_id or (target.get('chat_muted_until') and target['chat_muted_until'] > db.datetime.now()): continue
             while True:
                 try:
                     protect = is_restricted and not target.get('is_premium', False)
@@ -46,23 +46,25 @@ async def broadcast_worker(bot: Client):
         await asyncio.sleep(1)
 @Client.on_message(filters.command("broadcast") & filters.user(Config.ADMIN_IDS) & filters.reply)
 async def broadcast_cmd(client, message):
-    b_msg = message.reply_to_message
-    status_msg = await message.reply("⏳ <b>Broadcasting...</b>")
-    sent = failed = deleted = 0
-    all_users = await db.get_all_users()
-    for u in all_users:
-        while True:
-            try:
-                await b_msg.copy(u['user_id'])
-                sent += 1
-                break
-            except FloodWait as e: await asyncio.sleep(e.value + 3)
-            except UserIsBlocked:
-                await db.remove_user(u['user_id'])
-                deleted += 1
-                break
-            except Exception:
-                failed += 1
-                break
-        await asyncio.sleep(0.05)
-    await status_msg.edit_text(f"🏁 <b>Done!</b>\nSent: {sent} | Failed: {failed} | Deleted: {deleted}")
+    try:
+        b_msg = message.reply_to_message
+        status_msg = await message.reply("⏳ <b>Broadcasting...</b>")
+        sent = failed = deleted = 0
+        all_users = await db.get_all_users()
+        for u in all_users:
+            while True:
+                try:
+                    await b_msg.copy(u['user_id'])
+                    sent += 1
+                    break
+                except FloodWait as e: await asyncio.sleep(e.value + 3)
+                except UserIsBlocked:
+                    await db.remove_user(u['user_id'])
+                    deleted += 1
+                    break
+                except Exception:
+                    failed += 1
+                    break
+            await asyncio.sleep(0.05)
+        await status_msg.edit_text(f"🏁 <b>Done!</b>\nSent: {sent} | Failed: {failed} | Deleted: {deleted}")
+    except Exception as e: await message.reply(f"❌ <b>Error:</b> {e}")
