@@ -16,8 +16,10 @@ async def handle_join_request(client, message):
     user_id = message.from_user.id
     chat_id = message.chat.id
     await db.add_requested_channel(user_id, chat_id)
-    try: await client.send_message(user_id, "✅ <b>Join request registered!</b> You now have access. Please type /start to continue.")
-    except: pass
+    try: 
+        await client.send_message(user_id, "✅ <b>Join request registered!</b> You now have access. Please type /start to continue.")
+    except: 
+        pass
 
 @Client.on_message(filters.command("start") & filters.private)
 async def start_cmd(client, message):
@@ -134,6 +136,8 @@ async def help_cmd(client, message):
             "• /frsub on/off - Multi-Request Channels"
         )
     await message.reply(txt)
+
+# --- Admin Functionalities ---
 
 @Client.on_message(filters.command("mute") & filters.user(Config.ADMIN_IDS))
 async def mute_cmd(client, message):
@@ -333,7 +337,6 @@ async def toggle_dlt(client, message):
         await message.reply(f"✅ <b>Auto-Purge Protocol:</b> {'ONLINE' if mode else 'OFFLINE'}")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-# Added try-except wrapper here to ensure /frsub doesn't fail silently
 @Client.on_message(filters.command("frsub") & filters.user(Config.ADMIN_IDS))
 async def frsub_cmd_init(client, message):
     try:
@@ -342,7 +345,7 @@ async def frsub_cmd_init(client, message):
             await db.update_settings({"frsub_enabled": False})
             return await message.reply("✅ <b>Multi-Request Force Sub OFFLINE.</b>")
         admin_states[message.from_user.id] = {"step": "frsub_1"}
-        await message.reply("🔢 <b>Setup:</b> Send me your multiple request channel IDs separated by space.\nExample: `-100xxxxxxx -100yyyyyyy`")
+        await message.reply("🔢 <b>Setup:</b> Send me your multiple request channel IDs separated by space.\nExample: `-100xxxxxxx -100yyyyyyy`\n(You can also send a single ID)")
     except Exception as e:
         await message.reply(f"❌ <b>System Fault in frsub:</b> {e}")
 
@@ -384,11 +387,16 @@ async def admin_state_handler(client, message):
         
     elif state.get("step") == "frsub_1":
         channel_ids = []
-        for x in message.text.split():
+        # Support both single and multiple space-separated IDs
+        raw_ids = message.text.split()
+        for x in raw_ids:
+            # Check if it looks like a valid Telegram ID
             if x.lstrip('-').isdigit():
                 channel_ids.append(int(x))
+        
         if not channel_ids:
-            return await message.reply("❌ <b>Error:</b> No valid IDs found. Use format: `-100xxxxx -100yyyyy`")
+            return await message.reply("❌ <b>Error:</b> No valid IDs found. Use format: `-100xxxxx -100yyyyy` (or just one ID)")
+        
         await db.update_settings({"frsub_enabled": True, "frsub_channels": channel_ids})
         admin_states.pop(uid, None)
-        await message.reply(f"✅ <b>Multi-Request Force Sub ONLINE!</b>\nChannels Added & Monitoring: {len(channel_ids)}")
+        await message.reply(f"✅ <b>Force Sub IDs Registered!</b>\nTotal Channels Monitoring: <b>{len(channel_ids)}</b>\nMulti-Request System: <b>ONLINE</b>")
