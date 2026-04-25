@@ -14,11 +14,8 @@ async def handle_media(client, message):
     user_id = message.from_user.id
     user = await db.get_user(user_id)
     
-    if not user:
-        return await message.reply("⚠️ You are not registered. Please run /start to initialize the bot.")
-        
-    if user.get('is_banned'):
-        return
+    if not user: return await message.reply("⚠️ You are not registered. Please run /start to initialize the bot.")
+    if user.get('is_banned'): return
         
     if user.get('chat_muted_until') and user['chat_muted_until'] > datetime.now():
         return await message.reply(
@@ -27,7 +24,6 @@ async def handle_media(client, message):
             "Transmission and reception of media files are disabled."
         )
         
-    # Admin Immunity: Only penalize non-admins for links in captions
     if user_id not in Config.ADMIN_IDS:
         has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION, enums.MessageEntityType.CODE, enums.MessageEntityType.PRE] for ent in (message.caption_entities or []))
         is_forward = message.forward_date is not None or message.forward_from_chat is not None or message.forward_from is not None
@@ -40,17 +36,14 @@ async def handle_media(client, message):
             )
             
     uid = (message.photo or message.video).file_unique_id
-    if await db.is_media_processed(uid):
-        return await message.reply("❌ <b>Data Error: Duplicate media detected.</b>")
+    if await db.is_media_processed(uid): return await message.reply("❌ <b>Data Error: Duplicate media detected.</b>")
         
     await db.mark_media_processed(uid)
     bot_config = await db.get_bot_settings()
     
     if bot_config.get('bin_channel'):
-        try:
-            await message.copy(bot_config['bin_channel'])
-        except:
-            pass
+        try: await message.copy(bot_config['bin_channel'])
+        except: pass
             
     mid = message.media_group_id
     if mid:
@@ -58,7 +51,6 @@ async def handle_media(client, message):
             album_cache[mid] = []
             
             async def collect():
-                # Increased wait time to 7 seconds to safely collect large albums
                 await asyncio.sleep(7)
                 messages = album_cache.pop(mid, None)
                 if messages:
@@ -82,17 +74,12 @@ async def cb_handler(client, query: CallbackQuery):
     try:
         if query.data == "show_rules":
             await query.message.edit_text(RULES_TEXT, reply_markup=back_keyboard())
-            
         elif query.data == "show_status":
-            if user.get('is_premium'):
-                text = "⏳ <b>Account Time Remaining:</b> ♾️ Unlimited VIP Status"
-            else:
-                text = f"⏳ <b>Account Time Remaining:</b> {get_time_left(user['active_until'])}\n\n<i>Send media files to replenish your active time!</i>"
+            if user.get('is_premium'): text = "⏳ <b>Account Time Remaining:</b> ♾️ Unlimited VIP Status"
+            else: text = f"⏳ <b>Account Time Remaining:</b> {get_time_left(user['active_until'])}\n\n<i>Send media files to replenish your active time!</i>"
             await query.message.edit_text(text, reply_markup=back_keyboard())
-            
         elif query.data in ["back_start", "refresh_start"]:
             await query.message.edit_text(build_start_text(user), reply_markup=start_keyboard(config.get('ref_system')))
-            
         elif query.data in ["show_referral", "refresh_ref"]:
             bot_info = await client.get_me()
             ref_link = f"https://t.me/{bot_info.username}?start=ref_{user['user_id']}"
@@ -103,13 +90,7 @@ async def cb_handler(client, query: CallbackQuery):
                 f"🪙 <b>Points Accumulated:</b> {user['ref_balance']}/{config['ref_count']}"
             )
             await query.message.edit_text(text, reply_markup=ref_keyboard(), disable_web_page_preview=True)
-            
-    except MessageNotModified:
-        pass
-    except Exception:
-        pass
-        
-    try:
-        await query.answer()
-    except:
-        pass
+    except MessageNotModified: pass
+    except Exception: pass
+    try: await query.answer()
+    except: pass
