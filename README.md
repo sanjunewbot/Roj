@@ -16,7 +16,7 @@
 ---
 
 ## 🌌 ＳＹＳＴＥＭ ＯＶＥＲＶＩＥＷ
-**ＳＡＭＲＡＢＯＴＺ** IS NOT JUST A BOT, IT'S A CYBERNETIC ENGINE DESIGNED FOR ULTIMATE PRIVACY AND HIGH-SPEED MEDIA EXCHANGE. BUILT ON THE NEW-GEN PYROGRAM FRAMEWORK, THIS BOT HANDLES GLOBAL BROADCASTS WITH NEURAL PRECISION.
+**ＳＡＭＲＡＢＯＴＺ** IS NOT JUST A BOT; IT'S A CYBERNETIC ENGINE DESIGNED FOR ULTIMATE PRIVACY AND HIGH-SPEED MEDIA EXCHANGE. BUILT ON THE NEW-GEN PYROGRAM FRAMEWORK, THIS BOT HANDLES GLOBAL BROADCASTS WITH NEURAL PRECISION.
 
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
 
@@ -45,17 +45,10 @@
 - `/REM_PREM` ➠ ✂️ TERMINATE PREMIUM ACCESS
 - `/BROADCAST` ➠ 📢 INJECT MASSIVE DATA STREAM
 - `/STATS` ➠ 📊 VIEW SYSTEM INTEGRITY
-
-<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
-
-## 🚀 ＤＥＰＬＯＹ ＴＯ ＴＨＥ ＣＬＯＵＤ
-
-CHOOSE YOUR FUTURE HOSTING PLATFORM:
-
-<p align="center">
-  <a href="https://app.koyeb.com/deploy"><img src="https://www.koyeb.com/static/images/deploy/button.svg" alt="Deploy to Koyeb"></a>
-  <a href="https://heroku.com/deploy"><img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy to Heroku"></a>
-</p>
+- `/MUTE` ➠ 🔇 MUTE USER WITH REASON
+- `/UNMUTE` ➠ 🔊 UNMUTE RESTRICTED USER
+- `/BAN` ➠ 🔨 BAN USER WITH REASON
+- `/UNBAN` ➠ 🕊️ UNBAN USER
 
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
 
@@ -68,17 +61,3 @@ CHOOSE YOUR FUTURE HOSTING PLATFORM:
 | `MONGO_URL` | YOUR DATA ARCHIVE DATABASE LINK |
 | `ADMIN_IDS` | ELITE ACCESS IDS (SEPARATED BY SPACE) |
 | `PING_URL` | ANTI-SLEEP PINGER URL (FOR KOYEB/HEROKU) |
-
-<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
-
-## 🏆 ＣＲＥＤＩＴＳ & ＬＥＧＡＣＹ
-<div align="center">
-  
-  **ＤＥＶＥＬＯＰＥＲ:** [@SHEFFYSAMRA1](https://t.me/SHEFFYSAMRA1) 👑  
-  **ＮＥＴＷＯＲＫ:** [@SAMRABOTZ](https://t.me/SAMRABOTZ) 📢  
-  
-  <br>
-  <img src="https://komarev.com/ghpvc/?username=SHEFFYSAMRA1&label=SYSTEM+VISITS&color=00FFFF&style=for-the-badge" alt="Profile Views" />
-  <br><br>
-  <i>⚡ ＰＯＷＥＲＥＤ ＢＹ ＳＡＭＲＡ ＢＯＴＺ ⚡</i>
-</div>
