@@ -6,19 +6,19 @@ from pyrogram.types import BotCommand
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiohttp import web
 
-from config import Config
+import config
 from database import db
-from SAMRABOTZ_PLUGIN.broadcast import broadcast_worker 
+from SAMRABOTZ_PLUGIN.broadcast import broadcast_worker
 
 pyrogram.utils.MIN_CHAT_ID = -999999999999
 pyrogram.utils.MIN_CHANNEL_ID = -1009999999999
 
 bot = Client(
-    "SAMRABOTZ", 
-    api_id=Config.API_ID, 
-    api_hash=Config.API_HASH, 
-    bot_token=Config.BOT_TOKEN, 
-    parse_mode=enums.ParseMode.HTML, 
+    "SAMRABOTZ",
+    api_id=config.Config.API_ID,
+    api_hash=config.Config.API_HASH,
+    bot_token=config.Config.BOT_TOKEN,
+    parse_mode=enums.ParseMode.HTML,
     plugins=dict(root="SAMRABOTZ_PLUGIN")
 )
 
@@ -30,16 +30,16 @@ async def start_web_server():
     app.router.add_get('/', health_check)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', Config.PORT)
+    site = web.TCPSite(runner, '0.0.0.0', config.Config.PORT)
     await site.start()
-    print(f"🌐 Web server established on Port {Config.PORT}")
+    print(f"🌐 Web server established on Port {config.Config.PORT}")
 
 async def ping_server():
     import aiohttp
     while True:
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(Config.PING_URL) as response:
+                async with session.get(config.Config.PING_URL) as response:
                     pass
         except:
             pass
@@ -64,19 +64,21 @@ async def expiry_check():
     await db.remove_expired_premium()
 
 async def main():
+    # Safe initialization of the async queue within the running loop
+    config.media_queue = asyncio.Queue()
+    
     await start_web_server()
     asyncio.create_task(ping_server())
     
     await bot.start()
     restart_text = "✅ <b>System Restart Successful. All neural networks are online.</b>"
     
-    for admin_id in Config.ADMIN_IDS:
+    for admin_id in config.Config.ADMIN_IDS:
         try:
             await bot.send_message(chat_id=admin_id, text=restart_text)
         except Exception as e:
             print(f"Failed to alert Admin {admin_id}: {e}")
             
-    # ADDED /frsub to the bot commands menu
     await bot.set_bot_commands([
         BotCommand("start", "🚀 Access Dashboard"),
         BotCommand("register", "🎭 Modify Identity"),
@@ -104,7 +106,7 @@ async def main():
     asyncio.create_task(broadcast_worker(bot))
     
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(run_2h_reminders, "interval", minutes=15) 
+    scheduler.add_job(run_2h_reminders, "interval", minutes=15)
     scheduler.add_job(expiry_check, "interval", minutes=5)
     scheduler.start()
     
