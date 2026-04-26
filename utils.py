@@ -4,19 +4,19 @@ from datetime import datetime, timedelta
 from pyrogram import enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import ChatAdminRequired, UserNotParticipant
-from config import Config, START_TEXT_TEMPLATE, START_TIME
+import config
 from database import db
 
 async def check_fsub(client, user_id):
-    config = await db.get_bot_settings()
+    bot_config = await db.get_bot_settings()
     user = await db.get_user(user_id) or {}
     requested_channels = user.get("requested_channels", [])
     
     missing_channels = []
     error_status = None
     
-    if Config.FORCE_SUB_CHANNEL:
-        chat_id = Config.FORCE_SUB_CHANNEL
+    if config.Config.FORCE_SUB_CHANNEL:
+        chat_id = config.Config.FORCE_SUB_CHANNEL
         if isinstance(chat_id, str):
             if chat_id.startswith("-100") and chat_id.replace("-", "").isdigit():
                 chat_id = int(chat_id)
@@ -38,14 +38,16 @@ async def check_fsub(client, user_id):
             if "chat_admin_required" in str(e).lower():
                 error_status = "not_admin"
                 
-    if config.get("frsub_enabled") and config.get("frsub_channels"):
-        for cid in config["frsub_channels"]:
+    if bot_config.get("frsub_enabled") and bot_config.get("frsub_channels"):
+        for cid in bot_config["frsub_channels"]:
             if cid in requested_channels:
                 continue
             try:
                 member = await client.get_chat_member(cid, user_id)
                 if member.status in [enums.ChatMemberStatus.MEMBER, enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
                     continue
+                else:
+                     raise UserNotParticipant()
             except UserNotParticipant:
                 try:
                     chat = await client.get_chat(cid)
@@ -86,11 +88,11 @@ def get_time_left(active_until):
     return "0m"
 
 def get_uptime():
-    return str(timedelta(seconds=int(time.time() - START_TIME)))
+    return str(timedelta(seconds=int(time.time() - config.START_TIME)))
 
 def build_start_text(user):
     time_left = "♾️ Unlimited (Premium)" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
-    return START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_left, status="👑 VIP" if user.get('is_premium') else "🆓 Free")
+    return config.START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_left, status="👑 VIP" if user.get('is_premium') else "🆓 Free")
 
 def start_keyboard(is_ref_on=False):
     buttons = [
