@@ -112,6 +112,11 @@ def start_keyboard(is_ref_on=False, is_get_btn_on=False):
     
     if is_get_btn_on:
         buttons.append([KeyboardButton("🎥 GET MEDIA HISTORY")])
+        
+    if is_ref_on:
+        buttons.append([KeyboardButton("👥 Referral Network")])
+        
+    buttons.append([KeyboardButton("🔄 Refresh Dashboard")])
     
     return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
