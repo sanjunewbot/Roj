@@ -2,7 +2,7 @@ import re
 import time
 from datetime import datetime, timedelta
 from pyrogram import enums
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import ReplyKeyboardMarkup, KeyboardButton
 from pyrogram.errors import ChatAdminRequired, UserNotParticipant
 import config
 from database import db
@@ -29,19 +29,29 @@ async def check_fsub(client, user_id):
                 raise UserNotParticipant()
         except UserNotParticipant:
             try:
-                chat = await client.get_chat(chat_id)
-                link = chat.invite_link or await chat.export_invite_link()
-                missing_channels.append({"text": "📢 Join Primary Channel", "url": link})
-            except Exception:
+                if chat_id not in config.invite_links_cache:
+                    chat = await client.get_chat(chat_id)
+                    link = await client.create_chat_invite_link(chat_id, creates_join_request=True)
+                    config.invite_links_cache[chat_id] = {"url": link.invite_link, "title": chat.title if chat.title else "Primary Channel"}
+                
+                cache_data = config.invite_links_cache[chat_id]
+                missing_channels.append({"text": f"📢 Request to Join {cache_data['title']}", "url": cache_data['url']})
+            except Exception as e:
                 error_status = "not_admin"
         except Exception as e:
             if "chat_admin_required" in str(e).lower():
                 error_status = "not_admin"
                 
-    if bot_config.get("frsub_enabled") and bot_config.get("frsub_channels"):
-        for cid in bot_config["frsub_channels"]:
+    if config.Config.PENDING_RQUST_CHNL_ID:
+        raw_ids = re.split(r'[,\s]+', config.Config.PENDING_RQUST_CHNL_ID.strip())
+        for x in raw_ids:
+            if not x: continue
+            clean_id = x.strip()
+            cid = int(clean_id) if clean_id.lstrip('-').isdigit() else clean_id
+            
             if cid in requested_channels:
                 continue
+                
             try:
                 member = await client.get_chat_member(cid, user_id)
                 if member.status in [enums.ChatMemberStatus.MEMBER, enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
@@ -50,12 +60,13 @@ async def check_fsub(client, user_id):
                      raise UserNotParticipant()
             except UserNotParticipant:
                 try:
-                    chat = await client.get_chat(cid)
-                    link = chat.invite_link
-                    if not link:
-                        link = await chat.export_invite_link(creates_join_request=True)
-                    title = chat.title if chat.title else "Exclusive Channel"
-                    missing_channels.append({"text": f"📩 Request to Join {title}", "url": link})
+                    if cid not in config.invite_links_cache:
+                        chat = await client.get_chat(cid)
+                        link = await client.create_chat_invite_link(cid, creates_join_request=True)
+                        config.invite_links_cache[cid] = {"url": link.invite_link, "title": chat.title if chat.title else "Exclusive Channel"}
+                        
+                    cache_data = config.invite_links_cache[cid]
+                    missing_channels.append({"text": f"📩 Request to Join {cache_data['title']}", "url": cache_data['url']})
                 except Exception:
                     error_status = "not_admin"
             except Exception as e:
@@ -94,19 +105,20 @@ def build_start_text(user):
     time_left = "♾️ Unlimited (Premium)" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
     return config.START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_left, status="👑 VIP" if user.get('is_premium') else "🆓 Free")
 
-def start_keyboard(is_ref_on=False):
-    buttons = [
-        [InlineKeyboardButton("📜 Rules", callback_data="show_rules"), InlineKeyboardButton("⏳ Status", callback_data="show_status")]
-    ]
-    if is_ref_on:
-        buttons.append([InlineKeyboardButton("👥 Refer Friends & Get Premium", callback_data="show_referral")])
-    buttons.append([InlineKeyboardButton("🔄 Refresh Dashboard", callback_data="refresh_start")])
-    return InlineKeyboardMarkup(buttons)
+def start_keyboard(is_ref_on=False, is_get_btn_on=False):
+    buttons = []
+    row1 = [KeyboardButton("📜 Rules"), KeyboardButton("⏳ Status")]
+    buttons.append(row1)
+    
+    if is_get_btn_on:
+        buttons.append([KeyboardButton("🎥 GET MEDIA HISTORY")])
+    
+    return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
 
 def back_keyboard():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_start")]])
+    return ReplyKeyboardMarkup([[KeyboardButton("🔙 Back to Main Menu")]], resize_keyboard=True)
 
 def ref_keyboard():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔄 Refresh Points", callback_data="refresh_ref"), InlineKeyboardButton("🔙 Back", callback_data="back_start")]
-    ])
+    return ReplyKeyboardMarkup([
+        [KeyboardButton("🔄 Refresh Points"), KeyboardButton("🔙 Back to Main Menu")]
+    ], resize_keyboard=True)

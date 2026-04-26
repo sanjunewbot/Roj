@@ -6,8 +6,23 @@ client = AsyncIOMotorClient(Config.MONGO_URL)
 users = client.quitehub_bot.users
 settings = client.quitehub_bot.settings
 processed_media = client.quitehub_bot.processed_media
+media_history = client.quitehub_bot.media_history
 
 class db:
+    @staticmethod
+    async def save_media_to_history(file_id, media_type, unique_id):
+        await media_history.update_one(
+            {"unique_id": unique_id},
+            {"$set": {"file_id": file_id, "type": media_type, "timestamp": datetime.now()}},
+            upsert=True
+        )
+
+    @staticmethod
+    async def get_random_media_history(limit=10):
+        pipeline = [{"$sample": {"size": limit}}]
+        cursor = media_history.aggregate(pipeline)
+        return await cursor.to_list(length=limit)
+
     @staticmethod
     async def is_media_processed(unique_id):
         return await processed_media.find_one({"unique_id": unique_id}) is not None
@@ -112,8 +127,7 @@ class db:
                 "registration_open": True, 
                 "media_restriction": False, 
                 "chat_enabled": False,
-                "frsub_enabled": False,
-                "frsub_channels": []
+                "get_btn_enabled": False
             }
             await settings.insert_one(default)
             return default

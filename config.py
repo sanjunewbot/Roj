@@ -9,6 +9,7 @@ class Config:
     
     ADMIN_IDS = [7893435873]
     FORCE_SUB_CHANNEL = "-1003843949677"
+    PENDING_RQUST_CHNL_ID = os.environ.get("PENDING_RQUST_CHNL_ID", "-1004047659547")
     
     PORT = int(os.environ.get("PORT", 8080))
     PING_URL = os.environ.get("PING_URL", "http://0.0.0.0:8080")
@@ -21,6 +22,7 @@ media_queue = None
 album_cache = {}
 admin_states = {}
 chat_spam_tracker = {}
+invite_links_cache = {}
 
 START_TEXT_TEMPLATE = (
     "🚀 <b>Welcome to the Anonymous Media Exchange!</b>\n\n"

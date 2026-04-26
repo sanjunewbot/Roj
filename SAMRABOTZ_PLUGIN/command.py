@@ -65,7 +65,7 @@ async def start_cmd(client, message):
     status_val = "👑 VIP" if user.get('is_premium') else "🆓 Free"
     welcome_msg = config.START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_val, status=status_val)
     
-    await message.reply(welcome_msg, reply_markup=start_keyboard(bot_config.get('ref_system')), disable_web_page_preview=True)
+    await message.reply(welcome_msg, reply_markup=start_keyboard(bot_config.get('ref_system'), bot_config.get('get_btn_enabled')), disable_web_page_preview=True)
 
 @Client.on_message(filters.command("register") & filters.private)
 async def register_cmd(client, message):
@@ -133,7 +133,7 @@ async def help_cmd(client, message):
             "• /wait on/off - Registration Lock\n"
             "• /pmdlt on [secs] - Auto Purge Setup\n"
             "• /ref on/off - Referral Config\n"
-            "• /frsub on/off - Multi-Request Channels"
+            "• /get_buttn on/off - Toggle Media History"
         )
     await message.reply(txt)
 
@@ -335,17 +335,14 @@ async def toggle_dlt(client, message):
         await message.reply(f"✅ <b>Auto-Purge Protocol:</b> {'ONLINE' if mode else 'OFFLINE'}")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("frsub") & filters.user(config.Config.ADMIN_IDS))
-async def frsub_cmd_init(client, message):
+@Client.on_message(filters.command("get_buttn") & filters.user(config.Config.ADMIN_IDS))
+async def toggle_get_buttn(client, message):
     try:
-        if len(message.command) < 2: return await message.reply("⚙️ <b>Syntax:</b> `/frsub on` or `/frsub off`")
-        if message.command[1].lower() == "off":
-            await db.update_settings({"frsub_enabled": False})
-            return await message.reply("✅ <b>Multi-Request Force Sub OFFLINE.</b>")
-        config.admin_states[message.from_user.id] = {"step": "frsub_1"}
-        await message.reply("🔢 <b>Setup:</b> Send me your multiple request channel IDs separated by comma or space.\nExample: `-100xxxxxxx, -100yyyyyyy`")
-    except Exception as e:
-        await message.reply(f"❌ <b>System Fault in frsub:</b> {e}")
+        if len(message.command) < 2: return await message.reply("🎥 <b>Syntax:</b> `/get_buttn on` or `/get_buttn off`")
+        mode = message.command[1].lower() == "on"
+        await db.update_settings({"get_btn_enabled": mode})
+        await message.reply(f"✅ <b>Media History Button:</b> {'ONLINE' if mode else 'OFFLINE'}")
+    except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
 @Client.on_message(filters.command("ref") & filters.user(config.Config.ADMIN_IDS))
 async def ref_cmd_init(client, message):
@@ -359,7 +356,7 @@ async def ref_cmd_init(client, message):
     except Exception as e:
         await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "frsub"]))
+@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn"]) & ~filters.regex("^(🎥 GET MEDIA HISTORY|📜 Rules|⏳ Status|👥 Referral Network|🔄 Refresh Dashboard|🔙 Back to Main Menu|🔄 Refresh Points)$"))
 async def admin_state_handler(client, message):
     uid = message.from_user.id
     if uid not in config.admin_states: return
@@ -383,43 +380,3 @@ async def admin_state_handler(client, message):
             config.admin_states.pop(uid, None)
             await message.reply("✅ <b>Referral Protocol Configuration Complete. System is now active.</b>")
         else: await message.reply("❌ <b>Invalid Formatting:</b> Please utilize proper syntax (e.g., 7d, 1M).")
-        
-    elif state.get("step") == "frsub_1":
-        channel_ids = []
-        success_list = []
-        failed_list = []
-        
-        raw_ids = re.split(r'[,\s]+', message.text.strip())
-        status_msg = await message.reply("⏳ <b>Fetching Channel Data... Please wait.</b>")
-        
-        for x in raw_ids:
-            if not x: continue
-            try:
-                clean_id = x.strip()
-                if clean_id.lstrip('-').isdigit():
-                    cid = int(clean_id)
-                    chat = await client.get_chat(cid)
-                    title = chat.title if chat.title else "Unknown Channel"
-                    channel_ids.append(cid)
-                    success_list.append(f"✅ <b>{title}</b> (<code>{cid}</code>)")
-                else:
-                    failed_list.append(f"❌ Invalid Format: <code>{x}</code>")
-            except Exception as e:
-                failed_list.append(f"❌ Failed to access: <code>{x}</code> (Bot not admin?)")
-        
-        if not channel_ids:
-            config.admin_states.pop(uid, None)
-            return await status_msg.edit_text("❌ <b>Error:</b> No valid IDs found or bot lacks admin rights in the provided networks.\nFormat: `-100xxxxx, -100yyyyy`")
-        
-        await db.update_settings({"frsub_enabled": True, "frsub_channels": channel_ids})
-        config.admin_states.pop(uid, None)
-        
-        text = f"✅ <b>Force Sub Networks Registered!</b>\n\n"
-        text += "<b>🔗 Active Channels:</b>\n" + "\n".join(success_list) + "\n\n"
-        
-        if failed_list:
-            text += "<b>⚠️ Failed/Skipped:</b>\n" + "\n".join(failed_list) + "\n\n"
-            
-        text += f"Total Monitoring: <b>{len(channel_ids)}</b>\nMulti-Request System: <b>ONLINE</b>"
-        
-        await status_msg.edit_text(text)

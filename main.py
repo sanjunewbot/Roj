@@ -64,7 +64,6 @@ async def expiry_check():
     await db.remove_expired_premium()
 
 async def main():
-    # Safe initialization of the async queue within the running loop
     config.media_queue = asyncio.Queue()
     
     await start_web_server()
@@ -96,7 +95,7 @@ async def main():
         BotCommand("binch", "🗑️ Admin: Backup Core"),
         BotCommand("pmdlt", "⏱️ Admin: Auto-Purge"),
         BotCommand("ref", "⚙️ Admin: Setup Referral"),
-        BotCommand("frsub", "🔗 Admin: Multi-Request Force Sub"),
+        BotCommand("get_buttn", "🎥 Admin: Toggle Media History"),
         BotCommand("stats", "📈 Admin: System Diagnostics"),
         BotCommand("wait", "🚦 Admin: Registration Lock"),
         BotCommand("broadcast", "📢 Admin: Global Transmission"),
