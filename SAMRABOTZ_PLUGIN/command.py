@@ -343,7 +343,7 @@ async def frsub_cmd_init(client, message):
             await db.update_settings({"frsub_enabled": False})
             return await message.reply("✅ <b>Multi-Request Force Sub OFFLINE.</b>")
         config.admin_states[message.from_user.id] = {"step": "frsub_1"}
-        await message.reply("🔢 <b>Setup:</b> Send me your multiple request channel IDs separated by space.\nExample: `-100xxxxxxx -100yyyyyyy`\n(You can also send a single ID)")
+        await message.reply("🔢 <b>Setup:</b> Send me your multiple request channel IDs separated by comma or space.\nExample: `-100xxxxxxx, -100yyyyyyy`")
     except Exception as e:
         await message.reply(f"❌ <b>System Fault in frsub:</b> {e}")
 
@@ -386,14 +386,40 @@ async def admin_state_handler(client, message):
         
     elif state.get("step") == "frsub_1":
         channel_ids = []
-        raw_ids = message.text.split()
+        success_list = []
+        failed_list = []
+        
+        raw_ids = re.split(r'[,\s]+', message.text.strip())
+        status_msg = await message.reply("⏳ <b>Fetching Channel Data... Please wait.</b>")
+        
         for x in raw_ids:
-            if x.lstrip('-').isdigit():
-                channel_ids.append(int(x))
+            if not x: continue
+            try:
+                clean_id = x.strip()
+                if clean_id.lstrip('-').isdigit():
+                    cid = int(clean_id)
+                    chat = await client.get_chat(cid)
+                    title = chat.title if chat.title else "Unknown Channel"
+                    channel_ids.append(cid)
+                    success_list.append(f"✅ <b>{title}</b> (<code>{cid}</code>)")
+                else:
+                    failed_list.append(f"❌ Invalid Format: <code>{x}</code>")
+            except Exception as e:
+                failed_list.append(f"❌ Failed to access: <code>{x}</code> (Bot not admin?)")
         
         if not channel_ids:
-            return await message.reply("❌ <b>Error:</b> No valid IDs found. Use format: `-100xxxxx -100yyyyy` (or just one ID)")
+            config.admin_states.pop(uid, None)
+            return await status_msg.edit_text("❌ <b>Error:</b> No valid IDs found or bot lacks admin rights in the provided networks.\nFormat: `-100xxxxx, -100yyyyy`")
         
         await db.update_settings({"frsub_enabled": True, "frsub_channels": channel_ids})
         config.admin_states.pop(uid, None)
-        await message.reply(f"✅ <b>Force Sub IDs Registered!</b>\nTotal Channels Monitoring: <b>{len(channel_ids)}</b>\nMulti-Request System: <b>ONLINE</b>")
+        
+        text = f"✅ <b>Force Sub Networks Registered!</b>\n\n"
+        text += "<b>🔗 Active Channels:</b>\n" + "\n".join(success_list) + "\n\n"
+        
+        if failed_list:
+            text += "<b>⚠️ Failed/Skipped:</b>\n" + "\n".join(failed_list) + "\n\n"
+            
+        text += f"Total Monitoring: <b>{len(channel_ids)}</b>\nMulti-Request System: <b>ONLINE</b>"
+        
+        await status_msg.edit_text(text)
