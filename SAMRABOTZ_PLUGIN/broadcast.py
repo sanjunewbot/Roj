@@ -3,20 +3,30 @@ from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import InputMediaPhoto, InputMediaVideo
 from pyrogram.errors import FloodWait, UserIsBlocked
-from config import Config, media_queue
+import config
 from database import db
 
 async def broadcast_worker(bot: Client):
     while True:
-        data = await media_queue.get()
+        if config.media_queue is None:
+            await asyncio.sleep(1)
+            continue
+            
+        data = await config.media_queue.get()
         sender_id, messages = data['sender_id'], data['messages']
         user_info = await db.get_user(sender_id)
-        config = await db.get_bot_settings()
         
-        is_restricted = config.get('media_restriction', False)
-        caption_text = f"👤 #<b>{user_info['nickname']}</b>\n✨ <b>Join Network ➠ @{Config.FORCE_SUB_CHANNEL}</b>"
+        # Bypass if user deleted account or is not in db to prevent crash
+        if not user_info:
+            config.media_queue.task_done()
+            continue
+            
+        bot_config = await db.get_bot_settings()
         
-        if config['pm_dlt']: caption_text += f"\n\n⏱ <i>Auto-destruct in {config['dlt_time']}s!</i>"
+        is_restricted = bot_config.get('media_restriction', False)
+        caption_text = f"👤 #<b>{user_info['nickname']}</b>\n✨ <b>Join Network ➠ @{config.Config.FORCE_SUB_CHANNEL}</b>"
+        
+        if bot_config['pm_dlt']: caption_text += f"\n\n⏱ <i>Auto-destruct in {bot_config['dlt_time']}s!</i>"
         active_users = await db.get_active_users()
         
         for target in active_users:
@@ -36,9 +46,9 @@ async def broadcast_worker(bot: Client):
                     else:
                         sent = [await bot.copy_message(target['user_id'], sender_id, messages[0].id, caption=caption_text, protect_content=protect)]
                         
-                    if config['pm_dlt']:
+                    if bot_config['pm_dlt']:
                         async def dlt(cid, mids):
-                            await asyncio.sleep(config['dlt_time'])
+                            await asyncio.sleep(bot_config['dlt_time'])
                             try: await bot.delete_messages(cid, mids)
                             except: pass
                         asyncio.create_task(dlt(target['user_id'], [m.id for m in sent]))
@@ -50,10 +60,10 @@ async def broadcast_worker(bot: Client):
                 except Exception: break
                 
         if len(messages) == 1: await asyncio.sleep(2)
-        media_queue.task_done()
+        config.media_queue.task_done()
         await asyncio.sleep(0.5)
 
-@Client.on_message(filters.command("broadcast") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("broadcast") & filters.user(config.Config.ADMIN_IDS))
 async def broadcast_cmd(client, message):
     try:
         if not message.reply_to_message:
