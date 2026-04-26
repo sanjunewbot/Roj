@@ -4,7 +4,7 @@ from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from config import Config, RULES_TEXT, JOIN_TEXT, admin_states, START_TEXT_TEMPLATE, ME_TEXT_TEMPLATE
+import config
 from database import db, users
 from utils import check_fsub, parse_duration, build_start_text, start_keyboard, get_uptime, get_time_left
 
@@ -24,25 +24,25 @@ async def handle_join_request(client, message):
 @Client.on_message(filters.command("start") & filters.private)
 async def start_cmd(client, message):
     user_id = message.from_user.id
-    config = await db.get_bot_settings()
+    bot_config = await db.get_bot_settings()
     user = await db.get_user(user_id)
     
-    if not user and not config.get('registration_open', True):
+    if not user and not bot_config.get('registration_open', True):
         return await message.reply("🚫 <b>Registration Locked by Administrators.</b>")
 
     if len(message.command) > 1 and message.command[1].startswith("ref_"):
         try:
             inviter_id = int(message.command[1].split("_")[1])
-            if inviter_id != user_id and not user and config.get('ref_system'):
+            if inviter_id != user_id and not user and bot_config.get('ref_system'):
                 await users.update_one({"user_id": inviter_id}, {"$inc": {"ref_balance": 1}})
                 inviter = await db.get_user(inviter_id)
-                try: await client.send_message(inviter_id, f"🎉 <b>New Referral!</b> Points: {inviter['ref_balance']}/{config['ref_count']}")
+                try: await client.send_message(inviter_id, f"🎉 <b>New Referral!</b> Points: {inviter['ref_balance']}/{bot_config['ref_count']}")
                 except: pass
-                if inviter['ref_balance'] >= config['ref_count']:
-                    duration = parse_duration(config['ref_time_str'])
+                if inviter['ref_balance'] >= bot_config['ref_count']:
+                    duration = parse_duration(bot_config['ref_time_str'])
                     if duration:
                         expiry = datetime.now() + duration
-                        await users.update_one({"user_id": inviter_id}, {"$set": {"is_premium": True, "premium_expiry": expiry}, "$inc": {"ref_balance": -config['ref_count']}})
+                        await users.update_one({"user_id": inviter_id}, {"$set": {"is_premium": True, "premium_expiry": expiry}, "$inc": {"ref_balance": -bot_config['ref_count']}})
                         try: await client.send_message(inviter_id, "🎊 <b>VIP Premium Activated!</b>")
                         except: pass
         except: pass
@@ -63,9 +63,9 @@ async def start_cmd(client, message):
     
     time_val = "♾️ Unlimited" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
     status_val = "👑 VIP" if user.get('is_premium') else "🆓 Free"
-    welcome_msg = START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_val, status=status_val)
+    welcome_msg = config.START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_val, status=status_val)
     
-    await message.reply(welcome_msg, reply_markup=start_keyboard(config.get('ref_system')), disable_web_page_preview=True)
+    await message.reply(welcome_msg, reply_markup=start_keyboard(bot_config.get('ref_system')), disable_web_page_preview=True)
 
 @Client.on_message(filters.command("register") & filters.private)
 async def register_cmd(client, message):
@@ -88,7 +88,7 @@ async def me_cmd(client, message):
     if user.get('premium_expiry'):
         expiry_info = f"📅 <b>Expiry Date:</b> <code>{user['premium_expiry'].strftime('%Y-%m-%d %H:%M')}</code>\n"
 
-    me_msg = ME_TEXT_TEMPLATE.format(
+    me_msg = config.ME_TEXT_TEMPLATE.format(
         name=user['nickname'],
         user_id=user_id,
         status=status,
@@ -101,7 +101,7 @@ async def me_cmd(client, message):
 
 @Client.on_message(filters.command("join") & filters.private)
 async def join_cmd(client, message):
-    await message.reply(JOIN_TEXT)
+    await message.reply(config.JOIN_TEXT)
 
 @Client.on_message(filters.command("help") & filters.private)
 async def help_cmd(client, message):
@@ -116,7 +116,7 @@ async def help_cmd(client, message):
         "• /join - Plan Benefits\n"
         "• /help - This Menu\n"
     )
-    if message.from_user.id in Config.ADMIN_IDS:
+    if message.from_user.id in config.Config.ADMIN_IDS:
         txt += (
             "\n👑 <b>ADMIN COMMANDS:</b>\n"
             "• /stats - Live System Diagnostics\n"
@@ -137,9 +137,7 @@ async def help_cmd(client, message):
         )
     await message.reply(txt)
 
-# --- Admin Functionalities ---
-
-@Client.on_message(filters.command("mute") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("mute") & filters.user(config.Config.ADMIN_IDS))
 async def mute_cmd(client, message):
     try:
         nick = None
@@ -156,7 +154,7 @@ async def mute_cmd(client, message):
         if not nick: return await message.reply("❌ <b>Error:</b> Reply to a message or use `/mute #Nickname`.")
         u = await db.get_user_by_nickname(nick)
         if not u: return await message.reply(f"❌ <b>Error:</b> Identity #{nick} not found.")
-        if u['user_id'] in Config.ADMIN_IDS: return await message.reply("❌ <b>Action Denied:</b> Administrators possess system immunity.")
+        if u['user_id'] in config.Config.ADMIN_IDS: return await message.reply("❌ <b>Action Denied:</b> Administrators possess system immunity.")
             
         days, reason = 1, "Violation of Network Guidelines"
         if len(args) > 0 and args[0].isdigit():
@@ -172,7 +170,7 @@ async def mute_cmd(client, message):
         except: pass
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("unmute") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("unmute") & filters.user(config.Config.ADMIN_IDS))
 async def unmute_cmd(client, message):
     try:
         nick = None
@@ -193,7 +191,7 @@ async def unmute_cmd(client, message):
         except: pass
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("ban") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("ban") & filters.user(config.Config.ADMIN_IDS))
 async def ban_cmd(client, message):
     try:
         nick = None
@@ -210,7 +208,7 @@ async def ban_cmd(client, message):
         if not nick: return await message.reply("❌ <b>Error:</b> Reply to a message or use `/ban #Nickname`.")
         u = await db.get_user_by_nickname(nick)
         if not u: return await message.reply(f"❌ <b>Error:</b> Identity #{nick} not found.")
-        if u['user_id'] in Config.ADMIN_IDS: return await message.reply("❌ <b>Action Denied:</b> Administrators possess system immunity.")
+        if u['user_id'] in config.Config.ADMIN_IDS: return await message.reply("❌ <b>Action Denied:</b> Administrators possess system immunity.")
             
         days, reason = 365, "Severe Protocol Violation"
         if len(args) > 0 and args[0].isdigit():
@@ -225,7 +223,7 @@ async def ban_cmd(client, message):
         except: pass
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("unban") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("unban") & filters.user(config.Config.ADMIN_IDS))
 async def unban_cmd(client, message):
     try:
         nick = None
@@ -244,7 +242,7 @@ async def unban_cmd(client, message):
         await message.reply(f"🕊️ <b>Target Pardoned:</b> #{u['nickname']}")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("chat") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("chat") & filters.user(config.Config.ADMIN_IDS))
 async def toggle_chat(client, message):
     try:
         if len(message.command) < 2: return await message.reply("💬 <b>Syntax:</b> `/chat on` or `/chat off`")
@@ -253,7 +251,7 @@ async def toggle_chat(client, message):
         await message.reply(f"💬 Global Chat Protocol is now: <b>{'ONLINE' if mode else 'OFFLINE'}</b>")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("stats") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("stats") & filters.user(config.Config.ADMIN_IDS))
 async def stats_cmd(client, message):
     try:
         t, a, b = await db.get_stats()
@@ -268,7 +266,7 @@ async def stats_cmd(client, message):
         )
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("add") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("add") & filters.user(config.Config.ADMIN_IDS))
 async def manual_add(client, message):
     try:
         if len(message.command) < 3: return await message.reply("🎁 <b>Syntax:</b> `/add #Nickname 30d`")
@@ -285,7 +283,7 @@ async def manual_add(client, message):
         else: await message.reply("❌ <b>Error:</b> Invalid time parameter (acceptable: 1d, 30m, 1h).")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("rem_prem") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("rem_prem") & filters.user(config.Config.ADMIN_IDS))
 async def rem_prem_cmd(client, message):
     try:
         if len(message.command) < 2: return await message.reply("✂️ <b>Syntax:</b> `/rem_prem #Nickname`")
@@ -299,7 +297,7 @@ async def rem_prem_cmd(client, message):
         except: pass
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("restrict") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("restrict") & filters.user(config.Config.ADMIN_IDS))
 async def restrict_cmd(client, message):
     try:
         if len(message.command) < 2: return await message.reply("🔒 <b>Syntax:</b> `/restrict on` or `/restrict off`")
@@ -308,7 +306,7 @@ async def restrict_cmd(client, message):
         await message.reply(f"✅ <b>Media Forwarding Protection:</b> {'ENGAGED' if mode else 'DISENGAGED'}")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("binch") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("binch") & filters.user(config.Config.ADMIN_IDS))
 async def set_bin(client, message):
     try:
         if len(message.command) < 2: return await message.reply("🗑️ <b>Syntax:</b> `/binch -100xxxxxxxx`")
@@ -317,7 +315,7 @@ async def set_bin(client, message):
         await message.reply(f"✅ <b>Backup Archive Re-routed to:</b> {cid}")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("wait") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("wait") & filters.user(config.Config.ADMIN_IDS))
 async def wait_cmd(client, message):
     try:
         if len(message.command) < 2: return await message.reply("🚦 <b>Syntax:</b> `/wait on` (Lock) or `/wait off` (Open)")
@@ -326,7 +324,7 @@ async def wait_cmd(client, message):
         await message.reply(f"✅ <b>Network Entry Lock:</b> {'ACTIVE' if mode else 'DISABLED'}")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("pmdlt") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("pmdlt") & filters.user(config.Config.ADMIN_IDS))
 async def toggle_dlt(client, message):
     try:
         if len(message.command) < 2: return await message.reply("⏱️ <b>Syntax:</b> `/pmdlt on 60` or `/pmdlt off`")
@@ -337,35 +335,35 @@ async def toggle_dlt(client, message):
         await message.reply(f"✅ <b>Auto-Purge Protocol:</b> {'ONLINE' if mode else 'OFFLINE'}")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.command("frsub") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("frsub") & filters.user(config.Config.ADMIN_IDS))
 async def frsub_cmd_init(client, message):
     try:
         if len(message.command) < 2: return await message.reply("⚙️ <b>Syntax:</b> `/frsub on` or `/frsub off`")
         if message.command[1].lower() == "off":
             await db.update_settings({"frsub_enabled": False})
             return await message.reply("✅ <b>Multi-Request Force Sub OFFLINE.</b>")
-        admin_states[message.from_user.id] = {"step": "frsub_1"}
+        config.admin_states[message.from_user.id] = {"step": "frsub_1"}
         await message.reply("🔢 <b>Setup:</b> Send me your multiple request channel IDs separated by space.\nExample: `-100xxxxxxx -100yyyyyyy`\n(You can also send a single ID)")
     except Exception as e:
         await message.reply(f"❌ <b>System Fault in frsub:</b> {e}")
 
-@Client.on_message(filters.command("ref") & filters.user(Config.ADMIN_IDS))
+@Client.on_message(filters.command("ref") & filters.user(config.Config.ADMIN_IDS))
 async def ref_cmd_init(client, message):
     try:
         if len(message.command) < 2: return await message.reply("⚙️ <b>Syntax:</b> `/ref on` or `/ref off`")
         if message.command[1].lower() == "off":
             await db.update_settings({"ref_system": False})
             return await message.reply("✅ <b>Referral System Offline.</b>")
-        admin_states[message.from_user.id] = {"step": "ref_1"}
+        config.admin_states[message.from_user.id] = {"step": "ref_1"}
         await message.reply("🔢 <b>Initiating Setup:</b> Enter the required number of referrals for a reward.")
     except Exception as e:
         await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.text & filters.user(Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "frsub"]))
+@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "frsub"]))
 async def admin_state_handler(client, message):
     uid = message.from_user.id
-    if uid not in admin_states: return
-    state = admin_states[uid]
+    if uid not in config.admin_states: return
+    state = config.admin_states[uid]
     
     if state.get("step") == "ref_1":
         try:
@@ -377,20 +375,19 @@ async def admin_state_handler(client, message):
     elif state.get("step") == "ref_2":
         state["text"] = message.text
         state["step"] = "ref_3"
+            
         await message.reply("⏱ <b>Final Step:</b> Provide the premium duration reward (e.g., 7d, 1M, 24h).")
     elif state.get("step") == "ref_3":
         if parse_duration(message.text):
             await db.update_settings({"ref_system": True, "ref_count": state["count"], "ref_text": state["text"], "ref_time_str": message.text})
-            admin_states.pop(uid, None)
+            config.admin_states.pop(uid, None)
             await message.reply("✅ <b>Referral Protocol Configuration Complete. System is now active.</b>")
         else: await message.reply("❌ <b>Invalid Formatting:</b> Please utilize proper syntax (e.g., 7d, 1M).")
         
     elif state.get("step") == "frsub_1":
         channel_ids = []
-        # Support both single and multiple space-separated IDs
         raw_ids = message.text.split()
         for x in raw_ids:
-            # Check if it looks like a valid Telegram ID
             if x.lstrip('-').isdigit():
                 channel_ids.append(int(x))
         
@@ -398,5 +395,5 @@ async def admin_state_handler(client, message):
             return await message.reply("❌ <b>Error:</b> No valid IDs found. Use format: `-100xxxxx -100yyyyy` (or just one ID)")
         
         await db.update_settings({"frsub_enabled": True, "frsub_channels": channel_ids})
-        admin_states.pop(uid, None)
+        config.admin_states.pop(uid, None)
         await message.reply(f"✅ <b>Force Sub IDs Registered!</b>\nTotal Channels Monitoring: <b>{len(channel_ids)}</b>\nMulti-Request System: <b>ONLINE</b>")
