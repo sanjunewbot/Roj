@@ -17,10 +17,10 @@ class Config:
     MUTE_PENALTY_MINUTES = 2
 
 START_TIME = time.time()
-# The queue will be initialized safely in main.py to avoid asyncio loop errors
 media_queue = None
 album_cache = {}
 admin_states = {}
+chat_spam_tracker = {}
 
 START_TEXT_TEMPLATE = (
     "🚀 <b>Welcome to the Anonymous Media Exchange!</b>\n\n"
