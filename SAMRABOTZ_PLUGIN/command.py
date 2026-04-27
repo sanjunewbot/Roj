@@ -15,6 +15,12 @@ NOUNS = ["Wolf", "Raven", "Sniper", "Hunter", "Storm", "Ninja", "Phantom", "Drag
 async def handle_join_request(client, message):
     user_id = message.from_user.id
     chat_id = message.chat.id
+    
+    user = await db.get_user(user_id)
+    if not user:
+        random_name = f"{random.choice(ADJECTIVES)}{random.choice(NOUNS)}{random.randint(1000, 9999)}"
+        await db.add_user(user_id, random_name)
+        
     await db.add_requested_channel(user_id, chat_id)
     try: 
         await client.send_message(user_id, "✅ <b>Join request registered!</b> You now have access. Please type /start to continue.")
@@ -47,6 +53,11 @@ async def start_cmd(client, message):
                         except: pass
         except: pass
 
+    if not user:
+        random_name = f"{random.choice(ADJECTIVES)}{random.choice(NOUNS)}{random.randint(1000, 9999)}"
+        await db.add_user(user_id, random_name)
+        user = await db.get_user(user_id)
+
     is_joined, result = await check_fsub(client, user_id)
     if not is_joined:
         if result == "not_admin":
@@ -56,11 +67,6 @@ async def start_cmd(client, message):
             buttons.append([InlineKeyboardButton(item["text"], url=item["url"])])
         return await message.reply("❌ <b>Access Denied!</b>\nYou must join or send join requests to all mandatory networks below.\n\n<i>Note: Once you request, come back and type /start</i>", reply_markup=InlineKeyboardMarkup(buttons))
 
-    if not user:
-        random_name = f"{random.choice(ADJECTIVES)}{random.choice(NOUNS)}{random.randint(1000, 9999)}"
-        await db.add_user(user_id, random_name)
-        user = await db.get_user(user_id)
-    
     time_val = "♾️ Unlimited" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
     status_val = "👑 VIP" if user.get('is_premium') else "🆓 Free"
     welcome_msg = config.START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_val, status=status_val)
