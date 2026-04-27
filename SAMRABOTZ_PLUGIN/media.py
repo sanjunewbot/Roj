@@ -7,7 +7,7 @@ from pyrogram.errors import MessageNotModified
 
 import config
 from database import db
-from utils import get_time_left, start_keyboard, build_start_text, ref_keyboard, back_keyboard
+from utils import get_time_left, start_keyboard, history_reply_keyboard, build_start_text, ref_keyboard, back_keyboard
 
 @Client.on_message((filters.photo | filters.video) & filters.private)
 async def handle_media(client, message):
@@ -72,7 +72,7 @@ async def handle_media(client, message):
         await db.update_activity(user_id)
         await message.reply("✅ <b>Media Processed Successfully!</b> Your time has been extended by 30 minutes.")
 
-@Client.on_message(filters.text & filters.private & filters.regex("^(🎥 GET MEDIA HISTORY|📜 Rules|⏳ Status|👥 Referral Network|🔄 Refresh Dashboard|🔙 Back to Main Menu|🔄 Refresh Points)$"))
+@Client.on_message(filters.text & filters.private & filters.regex("^(🎥 GET MEDIA HISTORY)$"))
 async def reply_keyboard_handler(client, message):
     user = await db.get_user(message.from_user.id)
     if not user: return
@@ -80,18 +80,7 @@ async def reply_keyboard_handler(client, message):
     bot_config = await db.get_bot_settings()
     text = message.text
     
-    if text == "📜 Rules":
-        await message.reply(config.RULES_TEXT, reply_markup=back_keyboard())
-        
-    elif text == "⏳ Status":
-        if user.get('is_premium'): status_text = "⏳ <b>Account Time Remaining:</b> ♾️ Unlimited VIP Status"
-        else: status_text = f"⏳ <b>Account Time Remaining:</b> {get_time_left(user['active_until'])}\n\n<i>Send media files to replenish your active time!</i>"
-        await message.reply(status_text, reply_markup=back_keyboard())
-        
-    elif text in ["🔙 Back to Main Menu", "🔄 Refresh Dashboard"]:
-        await message.reply(build_start_text(user), reply_markup=start_keyboard(bot_config.get('ref_system'), bot_config.get('get_btn_enabled')))
-        
-    elif text == "🎥 GET MEDIA HISTORY" and bot_config.get('get_btn_enabled'):
+    if text == "🎥 GET MEDIA HISTORY" and bot_config.get('get_btn_enabled'):
         history = await db.get_random_media_history(10)
         if not history:
             return await message.reply("📭 History me abhi koi video/photo nahi hai!")
@@ -107,14 +96,35 @@ async def reply_keyboard_handler(client, message):
             except Exception:
                 pass
         await status_msg.delete()
-        
-    elif text in ["👥 Referral Network", "🔄 Refresh Points"]:
-        bot_info = await client.get_me()
-        ref_link = f"https://t.me/{bot_info.username}?start=ref_{user['user_id']}"
-        ref_text = (
-            f"👥 <b>Referral Network</b>\n\n"
-            f"{bot_config.get('ref_text', '')}\n\n"
-            f"🔗 <b>Your Exclusive Link:</b>\n<code>{ref_link}</code>\n\n"
-            f"🪙 <b>Points Accumulated:</b> {user['ref_balance']}/{bot_config['ref_count']}"
-        )
-        await message.reply(ref_text, reply_markup=ref_keyboard(), disable_web_page_preview=True)
+
+@Client.on_callback_query()
+async def cb_handler(client, query: CallbackQuery):
+    user = await db.get_user(query.from_user.id)
+    bot_config = await db.get_bot_settings()
+    
+    try:
+        if query.data == "show_rules":
+            await query.message.edit_text(config.RULES_TEXT, reply_markup=back_keyboard())
+            
+        elif query.data == "show_status":
+            if user.get('is_premium'): text = "⏳ <b>Account Time Remaining:</b> ♾️ Unlimited VIP Status"
+            else: text = f"⏳ <b>Account Time Remaining:</b> {get_time_left(user['active_until'])}\n\n<i>Send media files to replenish your active time!</i>"
+            await query.message.edit_text(text, reply_markup=back_keyboard())
+            
+        elif query.data in ["back_start", "refresh_start"]:
+            await query.message.edit_text(build_start_text(user), reply_markup=start_keyboard(bot_config.get('ref_system'), bot_config.get('tutorial_link')))
+            
+        elif query.data in ["show_referral", "refresh_ref"]:
+            bot_info = await client.get_me()
+            ref_link = f"https://t.me/{bot_info.username}?start=ref_{user['user_id']}"
+            text = (
+                f"👥 <b>Referral Network</b>\n\n"
+                f"{bot_config.get('ref_text', '')}\n\n"
+                f"🔗 <b>Your Exclusive Link:</b>\n<code>{ref_link}</code>\n\n"
+                f"🪙 <b>Points Accumulated:</b> {user['ref_balance']}/{bot_config['ref_count']}"
+            )
+            await query.message.edit_text(text, reply_markup=ref_keyboard(), disable_web_page_preview=True)
+    except MessageNotModified: pass
+    except Exception: pass
+    try: await query.answer()
+    except: pass
