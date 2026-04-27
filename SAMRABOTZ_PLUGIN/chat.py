@@ -8,7 +8,7 @@ from pyrogram.errors import FloodWait
 import config
 from database import db
 
-@Client.on_message(filters.text & filters.private & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(🎥 GET MEDIA HISTORY|📜 Rules|⏳ Status|👥 Referral Network|🔄 Refresh Dashboard|🔙 Back to Main Menu|🔄 Refresh Points)$"))
+@Client.on_message(filters.text & filters.private & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(🎥 GET MEDIA HISTORY)$"))
 async def chat_handler(client, message):
     user_id = message.from_user.id
     
