@@ -127,7 +127,8 @@ class db:
                 "registration_open": True, 
                 "media_restriction": False, 
                 "chat_enabled": False,
-                "get_btn_enabled": False
+                "get_btn_enabled": False,
+                "tutorial_link": None
             }
             await settings.insert_one(default)
             return default
