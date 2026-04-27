@@ -8,7 +8,7 @@ from pyrogram.errors import FloodWait
 import config
 from database import db
 
-@Client.on_message(filters.text & filters.private & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(🎥 GET MEDIA HISTORY)$"))
+@Client.on_message(filters.text & filters.private & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
 async def chat_handler(client, message):
     user_id = message.from_user.id
     
@@ -46,7 +46,7 @@ async def chat_handler(client, message):
         
     if user_id not in config.Config.ADMIN_IDS:
         has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION, enums.MessageEntityType.CODE, enums.MessageEntityType.PRE] for ent in (message.entities or []))
-        is_forward = message.forward_date is not None or message.forward_from_chat is not None or message.forward_from is not None
+        is_forward = getattr(message, "forward_origin", None) is not None
         
         if has_link or is_forward or re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me|@\w+)", message.text.lower()):
             await db.mute_user_time(user_id, config.Config.MUTE_PENALTY_MINUTES)
