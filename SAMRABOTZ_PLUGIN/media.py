@@ -1,7 +1,7 @@
 import asyncio
 import re
 from datetime import datetime
-from pyrogram import Client, filters, enums
+from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, LinkPreviewOptions
 from pyrogram.errors import MessageNotModified
 
@@ -23,17 +23,6 @@ async def handle_media(client, message):
             f"Restriction lifts at: {user['chat_muted_until'].strftime('%H:%M %d/%m')}\n"
             "Transmission and reception of media files are disabled."
         )
-        
-    if user_id not in config.Config.ADMIN_IDS:
-        has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION, enums.MessageEntityType.CODE, enums.MessageEntityType.PRE] for ent in (message.caption_entities or []))
-        is_forward = getattr(message, "forward_origin", None) is not None
-        
-        if has_link or is_forward or (message.caption and re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me|@\w+)", message.caption.lower())):
-            await db.mute_user_time(user_id, config.Config.MUTE_PENALTY_MINUTES)
-            return await message.reply(
-                f"🚨 <b>SECURITY VIOLATION: UNAUTHORIZED LINK DETECTED IN CAPTION!</b>\n"
-                f"Your account has been temporarily muted for {config.Config.MUTE_PENALTY_MINUTES} minutes. Sending and receiving media has been disabled."
-            )
             
     media_obj = message.photo or message.video
     uid = media_obj.file_unique_id
@@ -42,13 +31,25 @@ async def handle_media(client, message):
     
     if await db.is_media_processed(uid): return await message.reply("❌ <b>Data Error: Duplicate media detected.</b>")
         
-    await db.save_media_to_history(file_id, media_type, uid)
+    file_number = await db.get_next_file_number()
+    bot_info = await client.get_me()
+    ch_name = config.Config.FORCE_SUB_CHANNEL if config.Config.FORCE_SUB_CHANNEL else "Our Network"
+    
+    new_caption = (
+        f"📁 <b>File:</b> #{file_number}\n"
+        f"📢 <b>Channel:</b> {ch_name}\n"
+        f"🤖 <b>Bot:</b> @{bot_info.username}"
+    )
+    
+    await db.save_media_to_history(file_id, media_type, uid, file_number, new_caption)
     await db.mark_media_processed(uid)
+    
+    message.caption = new_caption
     
     bot_config = await db.get_bot_settings()
     
     if bot_config.get('bin_channel'):
-        try: await message.copy(bot_config['bin_channel'])
+        try: await message.copy(bot_config['bin_channel'], caption=new_caption)
         except: pass
             
     mid = message.media_group_id
@@ -91,10 +92,11 @@ async def reply_keyboard_handler(client, message):
         
         for item in history:
             try:
+                caption = item.get('caption', '')
                 if item['type'] == "photo":
-                    await client.send_photo(message.from_user.id, item['file_id'], protect_content=protect)
+                    await client.send_photo(message.from_user.id, item['file_id'], caption=caption, protect_content=protect)
                 else:
-                    await client.send_video(message.from_user.id, item['file_id'], protect_content=protect)
+                    await client.send_video(message.from_user.id, item['file_id'], caption=caption, protect_content=protect)
             except Exception:
                 pass
         await status_msg.delete()
