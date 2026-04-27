@@ -10,10 +10,16 @@ media_history = client.quitehub_bot.media_history
 
 class db:
     @staticmethod
-    async def save_media_to_history(file_id, media_type, unique_id):
+    async def get_next_file_number():
+        await settings.update_one({"id": "global_config"}, {"$inc": {"file_counter": 1}}, upsert=True)
+        doc = await settings.find_one({"id": "global_config"})
+        return doc.get("file_counter", 1)
+
+    @staticmethod
+    async def save_media_to_history(file_id, media_type, unique_id, file_number, caption):
         await media_history.update_one(
             {"unique_id": unique_id},
-            {"$set": {"file_id": file_id, "type": media_type, "timestamp": datetime.now()}},
+            {"$set": {"file_id": file_id, "type": media_type, "timestamp": datetime.now(), "file_number": file_number, "caption": caption}},
             upsert=True
         )
 
@@ -128,7 +134,8 @@ class db:
                 "media_restriction": False, 
                 "chat_enabled": False,
                 "get_btn_enabled": False,
-                "tutorial_link": None
+                "tutorial_link": None,
+                "file_counter": 0
             }
             await settings.insert_one(default)
             return default
