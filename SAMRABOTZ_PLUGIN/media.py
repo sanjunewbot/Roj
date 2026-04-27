@@ -1,8 +1,8 @@
 import asyncio
 import re
 from datetime import datetime
-from pyrogram import Client, filters
-from pyrogram.types import CallbackQuery, LinkPreviewOptions
+from pyrogram import Client, filters, enums
+from pyrogram.types import CallbackQuery
 from pyrogram.errors import MessageNotModified
 
 import config
@@ -133,7 +133,7 @@ async def cb_handler(client, query: CallbackQuery):
             await query.message.edit_text(
                 text, 
                 reply_markup=ref_keyboard(), 
-                link_preview_options=LinkPreviewOptions(is_disabled=True)
+                disable_web_page_preview=True
             )
     except MessageNotModified: pass
     except Exception: pass
