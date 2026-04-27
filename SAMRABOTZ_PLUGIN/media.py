@@ -2,7 +2,7 @@ import asyncio
 import re
 from datetime import datetime
 from pyrogram import Client, filters, enums
-from pyrogram.types import CallbackQuery
+from pyrogram.types import CallbackQuery, LinkPreviewOptions
 from pyrogram.errors import MessageNotModified
 
 import config
@@ -32,7 +32,9 @@ async def handle_media(client, message):
     if await db.is_media_processed(uid): return await message.reply("❌ <b>Data Error: Duplicate media detected.</b>")
         
     file_number = await db.get_next_file_number()
-    bot_info = await client.get_me()
+    
+    # 🔥 FLOODWAIT FIX: Memory se direct data uthaya, Telegram se nahi pucha 🔥
+    bot_info = client.me 
     ch_name = config.Config.FORCE_SUB_CHANNEL if config.Config.FORCE_SUB_CHANNEL else "Our Network"
     
     new_caption = (
@@ -122,7 +124,8 @@ async def cb_handler(client, query: CallbackQuery):
             )
             
         elif query.data in ["show_referral", "refresh_ref"]:
-            bot_info = await client.get_me()
+            # 🔥 FLOODWAIT FIX APPLIED HERE TOO 🔥
+            bot_info = client.me
             ref_link = f"https://t.me/{bot_info.username}?start=ref_{user['user_id']}"
             text = (
                 f"👥 <b>Referral Network</b>\n\n"
@@ -133,7 +136,7 @@ async def cb_handler(client, query: CallbackQuery):
             await query.message.edit_text(
                 text, 
                 reply_markup=ref_keyboard(), 
-                disable_web_page_preview=True
+                link_preview_options=LinkPreviewOptions(is_disabled=True)
             )
     except MessageNotModified: pass
     except Exception: pass
