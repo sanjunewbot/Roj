@@ -2,7 +2,7 @@ import random
 import re
 from datetime import datetime
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, LinkPreviewOptions
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 import config
 from database import db, users
@@ -76,7 +76,7 @@ async def start_cmd(client, message):
     await message.reply(
         welcome_msg, 
         reply_markup=start_keyboard(bot_config.get('ref_system'), t_link), 
-        link_preview_options=LinkPreviewOptions(is_disabled=True)
+        disable_web_page_preview=True
     )
     
     menu_msg = "💡 <b>System UI Loaded.</b>"
