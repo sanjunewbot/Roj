@@ -87,12 +87,14 @@ async def reply_keyboard_handler(client, message):
             
         status_msg = await message.reply("🚀 Fetching media history...")
         
+        protect = bot_config.get('media_restriction', False) and not user.get('is_premium', False)
+        
         for item in history:
             try:
                 if item['type'] == "photo":
-                    await client.send_photo(message.from_user.id, item['file_id'])
+                    await client.send_photo(message.from_user.id, item['file_id'], protect_content=protect)
                 else:
-                    await client.send_video(message.from_user.id, item['file_id'])
+                    await client.send_video(message.from_user.id, item['file_id'], protect_content=protect)
             except Exception:
                 pass
         await status_msg.delete()
