@@ -15,13 +15,28 @@ async def check_fsub(client, user_id):
     missing_channels = []
     error_status = None
     
+    # Combined Logic for Primary and Secondary Channels
+    target_channels = []
+    
     if config.Config.FORCE_SUB_CHANNEL:
-        chat_id = config.Config.FORCE_SUB_CHANNEL
+        target_channels.append(config.Config.FORCE_SUB_CHANNEL)
+        
+    if config.Config.PENDING_RQUST_CHNL_ID:
+        raw_ids = re.split(r'[,\s]+', config.Config.PENDING_RQUST_CHNL_ID.strip())
+        for rid in raw_ids:
+            if rid: target_channels.append(rid.strip())
+
+    for x in target_channels:
+        chat_id = x
         if isinstance(chat_id, str):
             if chat_id.startswith("-100") and chat_id.replace("-", "").isdigit():
                 chat_id = int(chat_id)
             elif not chat_id.startswith("@") and not chat_id.lstrip("-").isdigit():
                 chat_id = f"@{chat_id}"
+
+        # Bypass if user has already sent a join request to this channel
+        if chat_id in requested_channels:
+            continue
 
         try:
             member = await client.get_chat_member(chat_id, user_id)
@@ -32,46 +47,18 @@ async def check_fsub(client, user_id):
                 if chat_id not in config.invite_links_cache:
                     chat = await client.get_chat(chat_id)
                     link = await client.create_chat_invite_link(chat_id, creates_join_request=True)
-                    config.invite_links_cache[chat_id] = {"url": link.invite_link, "title": chat.title if chat.title else "Primary Channel"}
+                    config.invite_links_cache[chat_id] = {
+                        "url": link.invite_link, 
+                        "title": chat.title if chat.title else "Network Channel"
+                    }
                 
                 cache_data = config.invite_links_cache[chat_id]
-                missing_channels.append({"text": f"📢 Request to Join {cache_data['title']}", "url": cache_data['url']})
-            except Exception as e:
+                missing_channels.append({"text": f"📩 Request to Join {cache_data['title']}", "url": cache_data['url']})
+            except Exception:
                 error_status = "not_admin"
         except Exception as e:
             if "chat_admin_required" in str(e).lower():
                 error_status = "not_admin"
-                
-    if config.Config.PENDING_RQUST_CHNL_ID:
-        raw_ids = re.split(r'[,\s]+', config.Config.PENDING_RQUST_CHNL_ID.strip())
-        for x in raw_ids:
-            if not x: continue
-            clean_id = x.strip()
-            cid = int(clean_id) if clean_id.lstrip('-').isdigit() else clean_id
-            
-            if cid in requested_channels:
-                continue
-                
-            try:
-                member = await client.get_chat_member(cid, user_id)
-                if member.status in [enums.ChatMemberStatus.MEMBER, enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
-                    continue
-                else:
-                     raise UserNotParticipant()
-            except UserNotParticipant:
-                try:
-                    if cid not in config.invite_links_cache:
-                        chat = await client.get_chat(cid)
-                        link = await client.create_chat_invite_link(cid, creates_join_request=True)
-                        config.invite_links_cache[cid] = {"url": link.invite_link, "title": chat.title if chat.title else "Exclusive Channel"}
-                        
-                    cache_data = config.invite_links_cache[cid]
-                    missing_channels.append({"text": f"📩 Request to Join {cache_data['title']}", "url": cache_data['url']})
-                except Exception:
-                    error_status = "not_admin"
-            except Exception as e:
-                if "chat_admin_required" in str(e).lower():
-                    error_status = "not_admin"
 
     if error_status:
         return False, "not_admin"
