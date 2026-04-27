@@ -93,13 +93,13 @@ def build_start_text(user):
 def start_keyboard(is_ref_on=False, t_link=None):
     buttons = [
         [
-            InlineKeyboardButton("Rules", callback_data="show_rules", style="danger"), 
-            InlineKeyboardButton("Status", callback_data="show_status", style="primary")
+            InlineKeyboardButton("Rules", callback_data="show_rules"), 
+            InlineKeyboardButton("Status", callback_data="show_status")
         ]
     ]
     
     if is_ref_on:
-        buttons.append([InlineKeyboardButton("Referral Network", callback_data="show_referral", style="success")])
+        buttons.append([InlineKeyboardButton("Referral Network", callback_data="show_referral")])
         
     if t_link:
         buttons.append([InlineKeyboardButton("How to Use", url=t_link)])
