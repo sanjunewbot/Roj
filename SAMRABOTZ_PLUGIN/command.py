@@ -71,7 +71,19 @@ async def start_cmd(client, message):
     status_val = "👑 VIP" if user.get('is_premium') else "🆓 Free"
     welcome_msg = config.START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_val, status=status_val)
     
-    await message.reply(welcome_msg, reply_markup=start_keyboard(bot_config.get('ref_system'), bot_config.get('get_btn_enabled')), disable_web_page_preview=True)
+    # Crystal button (Inline) logic for tutorial
+    inline_kb = None
+    t_link = bot_config.get("tutorial_link")
+    if t_link:
+        inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton("💎 How to Use", url=t_link)]])
+    
+    await message.reply(welcome_msg, 
+                        reply_markup=start_keyboard(bot_config.get('ref_system'), bot_config.get('get_btn_enabled')), 
+                        disable_web_page_preview=True)
+    
+    # Send tutorial button separately or attached to text
+    if inline_kb:
+        await message.reply("🎬 <b>Check our system tutorial below:</b>", reply_markup=inline_kb)
 
 @Client.on_message(filters.command("register") & filters.private)
 async def register_cmd(client, message):
@@ -139,7 +151,8 @@ async def help_cmd(client, message):
             "• /wait on/off - Registration Lock\n"
             "• /pmdlt on [secs] - Auto Purge Setup\n"
             "• /ref on/off - Referral Config\n"
-            "• /get_buttn on/off - Toggle Media History"
+            "• /get_buttn on/off - Toggle Media History\n"
+            "• /tutorial [link] - Set Video Tutorial"
         )
     await message.reply(txt)
 
@@ -350,6 +363,15 @@ async def toggle_get_buttn(client, message):
         await message.reply(f"✅ <b>Media History Button:</b> {'ONLINE' if mode else 'OFFLINE'}")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
+@Client.on_message(filters.command("tutorial") & filters.user(config.Config.ADMIN_IDS))
+async def set_tutorial(client, message):
+    try:
+        if len(message.command) < 2: return await message.reply("🎬 <b>Syntax:</b> `/tutorial <link>`")
+        link = message.command[1]
+        await db.update_settings({"tutorial_link": link})
+        await message.reply(f"✅ <b>System Tutorial Link Updated:</b>\n{link}")
+    except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
+
 @Client.on_message(filters.command("ref") & filters.user(config.Config.ADMIN_IDS))
 async def ref_cmd_init(client, message):
     try:
@@ -362,7 +384,7 @@ async def ref_cmd_init(client, message):
     except Exception as e:
         await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn"]) & ~filters.regex("^(🎥 GET MEDIA HISTORY|📜 Rules|⏳ Status|👥 Referral Network|🔄 Refresh Dashboard|🔙 Back to Main Menu|🔄 Refresh Points)$"))
+@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(🎥 GET MEDIA HISTORY|📜 Rules|⏳ Status|👥 Referral Network|🔄 Refresh Dashboard|🔙 Back to Main Menu|🔄 Refresh Points)$"))
 async def admin_state_handler(client, message):
     uid = message.from_user.id
     if uid not in config.admin_states: return
