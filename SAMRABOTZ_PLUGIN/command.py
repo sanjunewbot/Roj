@@ -2,7 +2,7 @@ import random
 import re
 from datetime import datetime
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, LinkPreviewOptions
 
 import config
 from database import db, users
@@ -67,8 +67,8 @@ async def start_cmd(client, message):
             buttons.append([InlineKeyboardButton(item["text"], url=item["url"])])
         return await message.reply("❌ <b>Access Denied!</b>\nYou must join or send join requests to all mandatory networks below.\n\n<i>Note: Once you request, come back and type /start</i>", reply_markup=InlineKeyboardMarkup(buttons))
 
-    time_val = "♾️ Unlimited" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
-    status_val = "👑 VIP" if user.get('is_premium') else "🆓 Free"
+    time_val = "Unlimited" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
+    status_val = "VIP" if user.get('is_premium') else "Free"
     welcome_msg = config.START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_val, status=status_val)
     
     t_link = bot_config.get("tutorial_link")
@@ -76,7 +76,7 @@ async def start_cmd(client, message):
     await message.reply(
         welcome_msg, 
         reply_markup=start_keyboard(bot_config.get('ref_system'), t_link), 
-        disable_web_page_preview=True
+        link_preview_options=LinkPreviewOptions(is_disabled=True)
     )
     
     menu_msg = "💡 <b>System UI Loaded.</b>"
@@ -96,8 +96,8 @@ async def me_cmd(client, message):
     user = await db.get_user(user_id)
     if not user: return
 
-    status = "👑 VIP Premium" if user.get('is_premium') else "🆓 Standard Free"
-    time_left = "♾️ Unlimited" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
+    status = "VIP Premium" if user.get('is_premium') else "Standard Free"
+    time_left = "Unlimited" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
     
     expiry_info = ""
     if user.get('premium_expiry'):
@@ -385,7 +385,7 @@ async def ref_cmd_init(client, message):
     except Exception as e:
         await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(🎥 GET MEDIA HISTORY)$"))
+@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
 async def admin_state_handler(client, message):
     uid = message.from_user.id
     if uid not in config.admin_states: return
