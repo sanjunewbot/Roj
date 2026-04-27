@@ -149,7 +149,7 @@ async def help_cmd(client, message):
             "• /pmdlt on [secs] - Auto Purge Setup\n"
             "• /ref on/off - Referral Config\n"
             "• /get_buttn on/off - Toggle Media History\n"
-            "• /tutorial [link] - Set Video Tutorial"
+            "• /tutorial on/off - Manage Video Tutorial"
         )
     await message.reply(txt)
 
@@ -361,12 +361,16 @@ async def toggle_get_buttn(client, message):
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
 @Client.on_message(filters.command("tutorial") & filters.user(config.Config.ADMIN_IDS))
-async def set_tutorial(client, message):
+async def manage_tutorial(client, message):
     try:
-        if len(message.command) < 2: return await message.reply("🎬 <b>Syntax:</b> `/tutorial <link>`")
-        link = message.command[1]
-        await db.update_settings({"tutorial_link": link})
-        await message.reply(f"✅ <b>System Tutorial Link Updated:</b>\n{link}")
+        if len(message.command) < 2: return await message.reply("🎬 <b>Syntax:</b> `/tutorial on` or `/tutorial off`")
+        mode = message.command[1].lower()
+        if mode == "off":
+            await db.update_settings({"tutorial_link": None})
+            await message.reply("✅ <b>Tutorial Video Disabled.</b> Crystal button hidden.")
+        elif mode == "on":
+            config.admin_states[message.from_user.id] = {"step": "tut_1"}
+            await message.reply("🔗 <b>System Waiting:</b> Please send the Tutorial Video Link (URL).")
     except Exception as e: await message.reply(f"❌ <b>System Fault:</b> {e}")
 
 @Client.on_message(filters.command("ref") & filters.user(config.Config.ADMIN_IDS))
@@ -387,7 +391,13 @@ async def admin_state_handler(client, message):
     if uid not in config.admin_states: return
     state = config.admin_states[uid]
     
-    if state.get("step") == "ref_1":
+    if state.get("step") == "tut_1":
+        link = message.text
+        await db.update_settings({"tutorial_link": link})
+        config.admin_states.pop(uid, None)
+        await message.reply(f"✅ <b>System Tutorial Link Updated & Activated:</b>\n{link}")
+        
+    elif state.get("step") == "ref_1":
         try:
             state["count"] = int(message.text)
             state["step"] = "ref_2"
