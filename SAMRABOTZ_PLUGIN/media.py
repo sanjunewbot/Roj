@@ -2,7 +2,7 @@ import asyncio
 import re
 from datetime import datetime
 from pyrogram import Client, filters, enums
-from pyrogram.types import CallbackQuery
+from pyrogram.types import CallbackQuery, LinkPreviewOptions
 from pyrogram.errors import MessageNotModified
 
 import config
@@ -26,7 +26,7 @@ async def handle_media(client, message):
         
     if user_id not in config.Config.ADMIN_IDS:
         has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION, enums.MessageEntityType.CODE, enums.MessageEntityType.PRE] for ent in (message.caption_entities or []))
-        is_forward = message.forward_date is not None or message.forward_from_chat is not None or message.forward_from is not None
+        is_forward = getattr(message, "forward_origin", None) is not None
         
         if has_link or is_forward or (message.caption and re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me|@\w+)", message.caption.lower())):
             await db.mute_user_time(user_id, config.Config.MUTE_PENALTY_MINUTES)
@@ -72,7 +72,7 @@ async def handle_media(client, message):
         await db.update_activity(user_id)
         await message.reply("✅ <b>Media Processed Successfully!</b> Your time has been extended by 30 minutes.")
 
-@Client.on_message(filters.text & filters.private & filters.regex("^(🎥 GET MEDIA HISTORY)$"))
+@Client.on_message(filters.text & filters.private & filters.regex("^(GET MEDIA HISTORY)$"))
 async def reply_keyboard_handler(client, message):
     user = await db.get_user(message.from_user.id)
     if not user: return
@@ -80,7 +80,7 @@ async def reply_keyboard_handler(client, message):
     bot_config = await db.get_bot_settings()
     text = message.text
     
-    if text == "🎥 GET MEDIA HISTORY" and bot_config.get('get_btn_enabled'):
+    if text == "GET MEDIA HISTORY" and bot_config.get('get_btn_enabled'):
         history = await db.get_random_media_history(10)
         if not history:
             return await message.reply("📭 History me abhi koi video/photo nahi hai!")
@@ -109,12 +109,15 @@ async def cb_handler(client, query: CallbackQuery):
             await query.message.edit_text(config.RULES_TEXT, reply_markup=back_keyboard())
             
         elif query.data == "show_status":
-            if user.get('is_premium'): text = "⏳ <b>Account Time Remaining:</b> ♾️ Unlimited VIP Status"
+            if user.get('is_premium'): text = "⏳ <b>Account Time Remaining:</b> Unlimited VIP Status"
             else: text = f"⏳ <b>Account Time Remaining:</b> {get_time_left(user['active_until'])}\n\n<i>Send media files to replenish your active time!</i>"
             await query.message.edit_text(text, reply_markup=back_keyboard())
             
         elif query.data in ["back_start", "refresh_start"]:
-            await query.message.edit_text(build_start_text(user), reply_markup=start_keyboard(bot_config.get('ref_system'), bot_config.get('tutorial_link')))
+            await query.message.edit_text(
+                build_start_text(user), 
+                reply_markup=start_keyboard(bot_config.get('ref_system'), bot_config.get('tutorial_link'))
+            )
             
         elif query.data in ["show_referral", "refresh_ref"]:
             bot_info = await client.get_me()
@@ -125,7 +128,11 @@ async def cb_handler(client, query: CallbackQuery):
                 f"🔗 <b>Your Exclusive Link:</b>\n<code>{ref_link}</code>\n\n"
                 f"🪙 <b>Points Accumulated:</b> {user['ref_balance']}/{bot_config['ref_count']}"
             )
-            await query.message.edit_text(text, reply_markup=ref_keyboard(), disable_web_page_preview=True)
+            await query.message.edit_text(
+                text, 
+                reply_markup=ref_keyboard(), 
+                link_preview_options=LinkPreviewOptions(is_disabled=True)
+            )
     except MessageNotModified: pass
     except Exception: pass
     try: await query.answer()
