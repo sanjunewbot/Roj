@@ -6,7 +6,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 import config
 from database import db, users
-from utils import check_fsub, parse_duration, build_start_text, start_keyboard, get_uptime, get_time_left
+from utils import check_fsub, parse_duration, build_start_text, start_keyboard, history_reply_keyboard, get_uptime, get_time_left
 
 ADJECTIVES = ["Foggy", "Silent", "Hidden", "Dark", "Ghost", "Mystic", "Shadow", "Secret", "Neon", "Cyber"]
 NOUNS = ["Wolf", "Raven", "Sniper", "Hunter", "Storm", "Ninja", "Phantom", "Dragon", "Specter", "Viper"]
@@ -71,19 +71,16 @@ async def start_cmd(client, message):
     status_val = "👑 VIP" if user.get('is_premium') else "🆓 Free"
     welcome_msg = config.START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_val, status=status_val)
     
-    # Crystal button (Inline) logic for tutorial
-    inline_kb = None
     t_link = bot_config.get("tutorial_link")
-    if t_link:
-        inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton("💎 How to Use", url=t_link)]])
     
-    await message.reply(welcome_msg, 
-                        reply_markup=start_keyboard(bot_config.get('ref_system'), bot_config.get('get_btn_enabled')), 
-                        disable_web_page_preview=True)
+    await message.reply(
+        welcome_msg, 
+        reply_markup=start_keyboard(bot_config.get('ref_system'), t_link), 
+        disable_web_page_preview=True
+    )
     
-    # Send tutorial button separately or attached to text
-    if inline_kb:
-        await message.reply("🎬 <b>Check our system tutorial below:</b>", reply_markup=inline_kb)
+    menu_msg = "💡 <b>System UI Loaded.</b>"
+    await message.reply(menu_msg, reply_markup=history_reply_keyboard(bot_config.get('get_btn_enabled')))
 
 @Client.on_message(filters.command("register") & filters.private)
 async def register_cmd(client, message):
@@ -384,7 +381,7 @@ async def ref_cmd_init(client, message):
     except Exception as e:
         await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(🎥 GET MEDIA HISTORY|📜 Rules|⏳ Status|👥 Referral Network|🔄 Refresh Dashboard|🔙 Back to Main Menu|🔄 Refresh Points)$"))
+@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(🎥 GET MEDIA HISTORY)$"))
 async def admin_state_handler(client, message):
     uid = message.from_user.id
     if uid not in config.admin_states: return
