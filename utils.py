@@ -51,7 +51,7 @@ async def check_fsub(client, user_id):
                     }
                 
                 cache_data = config.invite_links_cache[chat_id]
-                missing_channels.append({"text": f"📩 Request to Join {cache_data['title']}", "url": cache_data['url']})
+                missing_channels.append({"text": f"Request to Join {cache_data['title']}", "url": cache_data['url']})
             except Exception:
                 error_status = "not_admin"
         except Exception as e:
@@ -87,33 +87,36 @@ def get_uptime():
     return str(timedelta(seconds=int(time.time() - config.START_TIME)))
 
 def build_start_text(user):
-    time_left = "♾️ Unlimited (Premium)" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
-    return config.START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_left, status="👑 VIP" if user.get('is_premium') else "🆓 Free")
+    time_left = "Unlimited (Premium)" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
+    return config.START_TEXT_TEMPLATE.format(name=user['nickname'], time=time_left, status="VIP" if user.get('is_premium') else "Free")
 
 def start_keyboard(is_ref_on=False, t_link=None):
     buttons = [
-        [InlineKeyboardButton("📜 Rules", callback_data="show_rules"), InlineKeyboardButton("⏳ Status", callback_data="show_status")]
+        [
+            InlineKeyboardButton("Rules", callback_data="show_rules", style="danger"), 
+            InlineKeyboardButton("Status", callback_data="show_status", style="primary")
+        ]
     ]
     
     if is_ref_on:
-        buttons.append([InlineKeyboardButton("👥 Referral Network", callback_data="show_referral")])
+        buttons.append([InlineKeyboardButton("Referral Network", callback_data="show_referral", style="success")])
         
     if t_link:
-        buttons.append([InlineKeyboardButton("💎 How to Use", url=t_link)])
+        buttons.append([InlineKeyboardButton("How to Use", url=t_link)])
         
-    buttons.append([InlineKeyboardButton("🔄 Refresh Dashboard", callback_data="refresh_start")])
+    buttons.append([InlineKeyboardButton("Refresh Dashboard", callback_data="refresh_start")])
     
     return InlineKeyboardMarkup(buttons)
 
 def history_reply_keyboard(is_get_btn_on=False):
     if is_get_btn_on:
-        return ReplyKeyboardMarkup([[KeyboardButton("🎥 GET MEDIA HISTORY")]], resize_keyboard=True)
+        return ReplyKeyboardMarkup([[KeyboardButton("GET MEDIA HISTORY")]], resize_keyboard=True)
     return ReplyKeyboardRemove()
 
 def back_keyboard():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_start")]])
+    return InlineKeyboardMarkup([[InlineKeyboardButton("Back to Main Menu", callback_data="back_start")]])
 
 def ref_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔄 Refresh Points", callback_data="refresh_ref"), InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_start")]
+        [InlineKeyboardButton("Refresh Points", callback_data="refresh_ref"), InlineKeyboardButton("Back to Main Menu", callback_data="back_start")]
     ])
