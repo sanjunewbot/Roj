@@ -2,18 +2,18 @@ import asyncio
 import re
 import time
 from datetime import datetime
-from pyrogram import Client, filters, enums
+from pyrogram import Client, filters, enums, ContinuePropagation
 from pyrogram.errors import FloodWait
 
 import config
 from database import db
 
-@Client.on_message(filters.text & filters.private & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
+@Client.on_message(filters.text & filters.private & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial", "updatecmds"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
 async def chat_handler(client, message):
     user_id = message.from_user.id
     
     if user_id in config.admin_states:
-        return
+        raise ContinuePropagation
         
     user = await db.get_user(user_id)
     
