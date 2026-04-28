@@ -13,20 +13,22 @@ async def broadcast_worker(bot: Client):
             continue
             
         data = await config.media_queue.get()
-        sender_id, messages = data['sender_id'], data['messages']
+        sender_id = data['sender_id']
+        messages = data['messages']
+        btn_markup = data.get('markup')
+        
         user_info = await db.get_user(sender_id)
         
-        # Bypass if user deleted account or is not in db to prevent crash
         if not user_info:
             config.media_queue.task_done()
             continue
             
         bot_config = await db.get_bot_settings()
-        
         is_restricted = bot_config.get('media_restriction', False)
-        caption_text = f"👤 #<b>{user_info['nickname']}</b>\n✨ <b>Join Network ➠ @{config.Config.FORCE_SUB_CHANNEL}</b>"
         
-        if bot_config['pm_dlt']: caption_text += f"\n\n⏱ <i>Auto-destruct in {bot_config['dlt_time']}s!</i>"
+        # Ekdum same VIP caption jo media.py ne banaya hai wahi use hoga
+        caption_text = messages[0].caption if messages[0].caption else ""
+        
         active_users = await db.get_active_users()
         
         for target in active_users:
@@ -44,7 +46,8 @@ async def broadcast_worker(bot: Client):
                             elif m.video: media_list.append(InputMediaVideo(m.video.file_id, caption=cap))
                         if media_list: sent = await bot.send_media_group(target['user_id'], media_list, protect_content=protect)
                     else:
-                        sent = [await bot.copy_message(target['user_id'], sender_id, messages[0].id, caption=caption_text, protect_content=protect)]
+                        # Single media ke sath VIP btn_markup attach ho jayega
+                        sent = [await bot.copy_message(target['user_id'], sender_id, messages[0].id, caption=caption_text, reply_markup=btn_markup, protect_content=protect)]
                         
                     if bot_config['pm_dlt']:
                         async def dlt(cid, mids):
