@@ -2,7 +2,7 @@ import asyncio
 import re
 import time
 from datetime import datetime
-from pyrogram import Client, filters, enums
+from pyrogram import Client, filters, enums, ContinuePropagation
 from pyrogram.errors import FloodWait
 
 import config
@@ -13,7 +13,7 @@ async def chat_handler(client, message):
     user_id = message.from_user.id
     
     if user_id in config.admin_states:
-        return
+        raise ContinuePropagation
         
     user = await db.get_user(user_id)
     
@@ -55,7 +55,17 @@ async def chat_handler(client, message):
                 f"Your account has been temporarily muted for {config.Config.MUTE_PENALTY_MINUTES} minutes. Sending and receiving media has been disabled."
             )
             
-    chat_text = f"💬 #<b>{user['nickname']}</b>\n\n{message.text}"
+    target_nick = None
+    if message.reply_to_message and message.reply_to_message.text:
+        match = re.search(r"💬\s*#(\w+)", message.reply_to_message.text)
+        if match:
+            target_nick = match.group(1)
+
+    if target_nick:
+        chat_text = f"💬 #<b>{user['nickname']}</b> ➦ #<b>{target_nick}</b>\n\n{message.text}"
+    else:
+        chat_text = f"💬 #<b>{user['nickname']}</b>\n\n{message.text}"
+        
     all_users = await db.get_all_users()
     
     for target in all_users:
