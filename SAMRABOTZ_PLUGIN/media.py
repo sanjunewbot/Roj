@@ -36,7 +36,9 @@ async def handle_media(client, message):
         else: ch_name = "𝔼𝕃𝕀𝕋𝔼 ℙℝ𝕀𝕍𝔸𝕋𝔼 𝕍𝔸𝕌𝕃𝕋"
     except: ch_name = "𝔼𝕃𝕀𝕋𝔼 ℙℝ𝕀𝕍𝔸𝕋𝔼 𝕍𝔸𝕌𝕃𝕋"
     
+    # 👤 User Nickname added for moderation tracking
     new_caption = (
+        f"👤 <b>𝕌𝕊𝔼ℝ:</b> #{user['nickname'].upper()}\n"
         f"📁 <b>𝔽𝕀𝕃𝔼:</b> #{file_number}\n"
         f"📢 <b>ℕ𝔼𝕋𝕎𝕆ℝ𝕂:</b> {ch_name}\n"
         f"🤖 <b>𝔹𝕆𝕋:</b> @{bot_info.username}"
@@ -88,7 +90,6 @@ async def reply_keyboard_handler(client, message):
     user_id = message.from_user.id
     now = time.time()
     
-    # ⏳ Anti-Spam Delay Logic (3 Minutes = 180 Seconds)
     if user_id in history_cooldowns:
         elapsed_time = now - history_cooldowns[user_id]
         if elapsed_time < 180:
@@ -106,9 +107,7 @@ async def reply_keyboard_handler(client, message):
         history = await db.get_random_media_history(10)
         if not history: return await message.reply("📭 History me abhi koi video/photo nahi hai!")
         
-        # Cooldown Timer Set Here
         history_cooldowns[user_id] = now
-        
         status_msg = await message.reply("🚀 Fetching media history...")
         protect = bot_config.get('media_restriction', False) and not user.get('is_premium', False)
         
@@ -135,17 +134,21 @@ async def reply_keyboard_handler(client, message):
         
         for item in history:
             try:
+                # Use stored caption or build with nickname if available in stored text
+                stored_cap = item.get('caption', "")
                 f_num = item.get('file_number', 'N/A')
-                new_cap = (
+                
+                # If stored_cap doesn't have nickname, we display what was saved. 
+                # Future saves will definitely have it.
+                new_cap = stored_cap if stored_cap else (
                     f"📁 <b>𝔽𝕀𝕃𝔼:</b> #{f_num}\n"
                     f"📢 <b>ℕ𝔼𝕋𝕎𝕆ℝ𝕂:</b> {ch_name}\n"
                     f"🤖 <b>𝔹𝕆𝕋:</b> @{bot_info.username}"
                 )
-                if bot_config.get('pm_dlt'): new_cap += f"\n\n⚠️ 𝕋ℍ𝕀𝕊 𝕄𝔼𝔻𝕀𝔸 𝕎𝕀𝕃𝕃 𝔹𝔼 𝔸𝕌𝕋𝕆-𝔻𝔼𝕊𝕋ℝ𝕌ℂ𝕋𝔼𝔻 𝕀ℕ {bot_config.get('dlt_time', 60)} 𝕊𝔼ℂ𝕆ℕ𝔻𝕊."
+                
                 if item['type'] == "photo": await client.send_photo(message.from_user.id, item['file_id'], caption=new_cap, reply_markup=btn_markup, protect_content=protect)
                 else: await client.send_video(message.from_user.id, item['file_id'], caption=new_cap, reply_markup=btn_markup, protect_content=protect)
                 
-                # Telegram API Flood-Wait Micro Delay
                 await asyncio.sleep(0.5)
             except Exception: pass
         await status_msg.delete()
