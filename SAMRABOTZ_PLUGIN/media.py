@@ -1,4 +1,5 @@
 import asyncio
+import time
 from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
@@ -8,6 +9,7 @@ from database import db
 from utils import get_time_left, start_keyboard, back_keyboard, ref_keyboard
 
 invite_cache = {"url": None, "count": 10}
+history_cooldowns = {}  # ⏳ Anti-Spam tracker for Get Media History
 
 @Client.on_message((filters.photo | filters.video) & filters.private)
 async def handle_media(client, message):
@@ -77,19 +79,36 @@ async def handle_media(client, message):
         config.album_cache[mid].append(message)
     else:
         setattr(message, 'generated_markup', btn_markup)
-        # Fix: Now passing 'markup': btn_markup for single media too!
         await config.media_queue.put({'sender_id': user_id, 'messages': [message], 'markup': btn_markup})
         await db.update_activity(user_id)
         await message.reply("✅ <b>Media Processed Successfully!</b> Your time has been extended by 30 minutes.")
 
 @Client.on_message(filters.text & filters.private & filters.regex("^(GET MEDIA HISTORY)$"))
 async def reply_keyboard_handler(client, message):
-    user = await db.get_user(message.from_user.id)
+    user_id = message.from_user.id
+    now = time.time()
+    
+    # ⏳ Anti-Spam Delay Logic (3 Minutes = 180 Seconds)
+    if user_id in history_cooldowns:
+        elapsed_time = now - history_cooldowns[user_id]
+        if elapsed_time < 180:
+            remaining = int(180 - elapsed_time)
+            mins = remaining // 60
+            secs = remaining % 60
+            time_str = f"{mins}m {secs}s" if mins > 0 else f"{secs}s"
+            return await message.reply(f"⏳ <b>Anti-Spam Protocol Active!</b>\n\nPlease wait <b>{time_str}</b> before requesting media history again.")
+            
+    user = await db.get_user(user_id)
     if not user: return
+    
     bot_config = await db.get_bot_settings()
     if bot_config.get('get_btn_enabled'):
         history = await db.get_random_media_history(10)
         if not history: return await message.reply("📭 History me abhi koi video/photo nahi hai!")
+        
+        # Cooldown Timer Set Here
+        history_cooldowns[user_id] = now
+        
         status_msg = await message.reply("🚀 Fetching media history...")
         protect = bot_config.get('media_restriction', False) and not user.get('is_premium', False)
         
@@ -125,6 +144,9 @@ async def reply_keyboard_handler(client, message):
                 if bot_config.get('pm_dlt'): new_cap += f"\n\n⚠️ 𝕋ℍ𝕀𝕊 𝕄𝔼𝔻𝕀𝔸 𝕎𝕀𝕃𝕃 𝔹𝔼 𝔸𝕌𝕋𝕆-𝔻𝔼𝕊𝕋ℝ𝕌ℂ𝕋𝔼𝔻 𝕀ℕ {bot_config.get('dlt_time', 60)} 𝕊𝔼ℂ𝕆ℕ𝔻𝕊."
                 if item['type'] == "photo": await client.send_photo(message.from_user.id, item['file_id'], caption=new_cap, reply_markup=btn_markup, protect_content=protect)
                 else: await client.send_video(message.from_user.id, item['file_id'], caption=new_cap, reply_markup=btn_markup, protect_content=protect)
+                
+                # Telegram API Flood-Wait Micro Delay
+                await asyncio.sleep(0.5)
             except Exception: pass
         await status_msg.delete()
 
