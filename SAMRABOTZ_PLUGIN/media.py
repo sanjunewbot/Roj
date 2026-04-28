@@ -77,7 +77,8 @@ async def handle_media(client, message):
         config.album_cache[mid].append(message)
     else:
         setattr(message, 'generated_markup', btn_markup)
-        await config.media_queue.put({'sender_id': user_id, 'messages': [message]})
+        # Fix: Now passing 'markup': btn_markup for single media too!
+        await config.media_queue.put({'sender_id': user_id, 'messages': [message], 'markup': btn_markup})
         await db.update_activity(user_id)
         await message.reply("✅ <b>Media Processed Successfully!</b> Your time has been extended by 30 minutes.")
 
