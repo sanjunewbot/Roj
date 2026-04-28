@@ -2,7 +2,7 @@ import random
 import re
 from datetime import datetime
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, BotCommand
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 import config
 from database import db, users
@@ -71,16 +71,11 @@ async def start_cmd(client, message):
     status_val = "VIP PREMIUM" if user.get('is_premium') else "STANDARD FREE"
     bot_info = client.me
     
-    welcome_msg = (
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🔥 WELCOME TO THE ELITE NETWORK 🔥\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"GREETINGS, #{user['nickname'].upper()}! WE ARE GLAD TO HAVE YOU HERE.\n\n"
-        f"🤖 BOT IDENTITY: @{bot_info.username.upper()}\n"
-        f"⚡ SYSTEM VIBE: FAST, SECURE, AND ADVANCED.\n\n"
-        f"⏳ ACCOUNT TIME REMAINING: {time_val}\n"
-        f"💎 CURRENT STATUS: {status_val}\n"
-        f"━━━━━━━━━━━━━━━━━━━━"
+    welcome_msg = config.START_TEXT_TEMPLATE.format(
+        name=user['nickname'].upper(), 
+        bot_name=bot_info.username.upper(), 
+        time=time_val, 
+        status=status_val
     )
     
     t_link = bot_config.get("tutorial_link")
@@ -93,19 +88,6 @@ async def start_cmd(client, message):
     
     menu_msg = "🎛 <b>KEYBOARD DEPLOYED 👇</b>"
     await message.reply(menu_msg, reply_markup=history_reply_keyboard(bot_config.get('get_btn_enabled')))
-
-@Client.on_message(filters.command("updatecmds") & filters.user(config.Config.ADMIN_IDS))
-async def update_cmds(client, message):
-    cmds = [
-        BotCommand("start", "DASHBOARD & STATUS"),
-        BotCommand("me", "DETAILED PROFILE STATS"),
-        BotCommand("register", "UPDATE IDENTITY"),
-        BotCommand("referral", "EARN VIP ACCESS"),
-        BotCommand("plans", "VIEW PLANS & BENEFITS"),
-        BotCommand("help", "OPEN COMMAND MENU")
-    ]
-    await client.set_bot_commands(cmds)
-    await message.reply("✅ <b>SYSTEM COMMANDS UPDATED SUCCESSFULLY.</b>")
 
 @Client.on_message(filters.command("register") & filters.private)
 async def register_cmd(client, message):
@@ -141,21 +123,7 @@ async def me_cmd(client, message):
 
 @Client.on_message(filters.command("plans") & filters.private)
 async def plans_cmd(client, message):
-    text = (
-        "💎 <b>VIP PREMIUM vs FREE TIER</b>\n\n"
-        "🆓 <b>FREE TIER</b>\n"
-        "• 30-SECOND DELAY FOR MEDIA DELIVERY\n"
-        "• STANDARD QUEUE PRIORITY\n"
-        "• ACTIVITY REQUIRED: 1 MEDIA BATCH = 30 MINUTES ACCESS (MAX 24H)\n\n"
-        "👑 <b>VIP PREMIUM TIER</b>\n"
-        "• UNLIMITED, UNCONDITIONAL ACCESS\n"
-        "• ZERO-DELAY PRIORITY DELIVERY (≈10 SECONDS)\n"
-        "• NO NEED TO SHARE MEDIA TO STAY ACTIVE\n"
-        "• ACCESS TO EXCLUSIVE VIP GROUP & MEGA FOLDER (100K+ FILES)\n\n"
-        "💰 <b>PAYMENT MODE:</b> UPI ONLY\n"
-        "📩 <b>JOIN NOW:</b> @roomjoinus"
-    )
-    await message.reply(text)
+    await message.reply(config.PLANS_TEXT)
 
 @Client.on_message(filters.command("help") & filters.private)
 async def help_cmd(client, message):
@@ -433,7 +401,7 @@ async def ref_cmd_init(client, message):
     except Exception as e:
         await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial", "updatecmds"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
+@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
 async def admin_state_handler(client, message):
     uid = message.from_user.id
     if uid not in config.admin_states: return
