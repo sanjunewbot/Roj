@@ -114,43 +114,66 @@ async def me_cmd(client, message):
     )
     await message.reply(me_msg)
 
-@Client.on_message(filters.command("join") & filters.private)
-async def join_cmd(client, message):
-    await message.reply(config.JOIN_TEXT)
+@Client.on_message(filters.command("plans") & filters.private)
+async def plans_cmd(client, message):
+    text = (
+        "💎 <b>VIP PREMIUM vs FREE TIER</b>\n\n"
+        "🆓 <b>FREE TIER</b>\n"
+        "• 30-SECOND DELAY FOR MEDIA DELIVERY\n"
+        "• STANDARD QUEUE PRIORITY\n"
+        "• ACTIVITY REQUIRED: 1 MEDIA BATCH = 30 MINUTES ACCESS (MAX 24H)\n\n"
+        "👑 <b>VIP PREMIUM TIER</b>\n"
+        "• UNLIMITED, UNCONDITIONAL ACCESS\n"
+        "• ZERO-DELAY PRIORITY DELIVERY (≈10 SECONDS)\n"
+        "• NO NEED TO SHARE MEDIA TO STAY ACTIVE\n"
+        "• ACCESS TO EXCLUSIVE VIP GROUP & MEGA FOLDER (100K+ FILES)\n\n"
+        "💰 <b>PAYMENT MODE:</b> UPI ONLY\n"
+        "📩 <b>JOIN NOW:</b> @roomjoinus"
+    )
+    await message.reply(text)
 
 @Client.on_message(filters.command("help") & filters.private)
 async def help_cmd(client, message):
     txt = (
-        "🛠 <b>BOT COMMAND DIRECTORY</b>\n"
-        "━━━━━━━━━━━━━━━━━━\n"
-        "👤 <b>USER COMMANDS:</b>\n"
-        "• /start - Dashboard & Status\n"
-        "• /me - Detailed Profile Stats\n"
-        "• /register [name] - Change Identity\n"
-        "• /referral - Earn VIP access\n"
-        "• /join - Plan Benefits\n"
-        "• /help - This Menu\n"
+        "╔═══━━━─── • ───━━━═══╗\n\n"
+        "🛠 <b>BOT COMMAND DIRECTORY</b>\n\n"
+        "╚═══━━━─── • ───━━━═══╝\n"
+        "╭─👤 <b>USER COMMANDS</b>\n\n"
+        "│ ✦ /START ➤ DASHBOARD & STATUS\n\n"
+        "│ ✦ /ME ➤ DETAILED PROFILE STATS\n\n"
+        "│ ✦ /REGISTER [NAME] ➤ UPDATE IDENTITY\n\n"
+        "│ ✦ /REFERRAL ➤ EARN VIP ACCESS\n\n"
+        "│ ✦ /PLANS ➤ VIEW PLANS & BENEFITS\n\n"
+        "│ ✦ /HELP ➤ OPEN COMMAND MENU\n\n"
+        "╰───────────────────────\n"
     )
     if message.from_user.id in config.Config.ADMIN_IDS:
         txt += (
-            "\n👑 <b>ADMIN COMMANDS:</b>\n"
-            "• /stats - Live System Diagnostics\n"
-            "• /add #Name 30d - Give Premium\n"
-            "• /rem_prem #Name - Remove Premium\n"
-            "• /mute [#Name] [days] [reason] - Mute User\n"
-            "• /unmute [#Name] - Unmute User\n"
-            "• /ban [#Name] [days] [reason] - Ban User\n"
-            "• /unban [#Name] - Unban User\n"
-            "• /broadcast - Global Message (Reply)\n"
-            "• /chat on/off - Toggle Global Chat\n"
-            "• /restrict on/off - Protection Mode\n"
-            "• /binch [id] - Set Backup Bin\n"
-            "• /wait on/off - Registration Lock\n"
-            "• /pmdlt on [secs] - Auto Purge Setup\n"
-            "• /ref on/off - Referral Config\n"
-            "• /get_buttn on/off - Toggle Media History\n"
-            "• /tutorial on/off - Manage Video Tutorial"
+            "╭─👑 <b>ADMIN COMMANDS</b>\n\n"
+            "│ ✦ /STATS ➤ LIVE SYSTEM DIAGNOSTICS\n\n"
+            "│ ✦ /ADD #NAME 30D ➤ GRANT PREMIUM\n\n"
+            "│ ✦ /REM_PREM #NAME ➤ REMOVE PREMIUM\n\n"
+            "│ ✦ /MUTE #NAME [DAYS] [REASON] ➤ MUTE USER\n\n"
+            "│ ✦ /UNMUTE #NAME ➤ UNMUTE USER\n\n"
+            "│ ✦ /BAN #NAME [DAYS] [REASON] ➤ BAN USER\n\n"
+            "│ ✦ /UNBAN #NAME ➤ UNBAN USER\n\n"
+            "│ ✦ /BROADCAST ➤ GLOBAL MESSAGE (REPLY)\n\n"
+            "│ ✦ /CHAT ON/OFF ➤ GLOBAL CHAT TOGGLE\n\n"
+            "│ ✦ /RESTRICT ON/OFF ➤ PROTECTION MODE\n\n"
+            "│ ✦ /BINCH [ID] ➤ SET BACKUP BIN\n\n"
+            "│ ✦ /WAIT ON/OFF ➤ REGISTRATION LOCK\n\n"
+            "│ ✦ /PMDLT ON [SECS] ➤ AUTO PURGE SETUP\n\n"
+            "│ ✦ /REF ON/OFF ➤ REFERRAL CONFIG\n\n"
+            "│ ✦ /GET_BUTTN ON/OFF ➤ MEDIA HISTORY\n\n"
+            "│ ✦ /TUTORIAL ON/OFF ➤ VIDEO GUIDE\n\n"
+            "╰───────────────────────\n"
         )
+    txt += (
+        "╔═════━──────━═════╗\n\n"
+        "📩 <b>JOIN NOW:</b> @roomjoinus\n\n"
+        "🚀 ELITE BOT SYSTEM • FAST • SECURE • ADVANCED\n\n"
+        "╚═════━──────━═════╝"
+    )
     await message.reply(txt)
 
 @Client.on_message(filters.command("mute") & filters.user(config.Config.ADMIN_IDS))
@@ -385,7 +408,7 @@ async def ref_cmd_init(client, message):
     except Exception as e:
         await message.reply(f"❌ <b>System Fault:</b> {e}")
 
-@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "join", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
+@Client.on_message(filters.text & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
 async def admin_state_handler(client, message):
     uid = message.from_user.id
     if uid not in config.admin_states: return
