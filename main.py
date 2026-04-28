@@ -79,27 +79,27 @@ async def main():
             print(f"Failed to alert Admin {admin_id}: {e}")
             
     await bot.set_bot_commands([
-        BotCommand("start", "🚀 Access Dashboard"),
-        BotCommand("register", "🎭 Modify Identity"),
-        BotCommand("me", "📊 View Profile & Status"),
-        BotCommand("referral", "👥 Refer & Get Premium"),
-        BotCommand("join", "💎 View Elite Perks"),
-        BotCommand("help", "❓ Show Command Directory"),
-        BotCommand("add", "🎁 Admin: Grant Premium"),
-        BotCommand("rem_prem", "✂️ Admin: Revoke Premium"),
-        BotCommand("mute", "🔇 Admin: Restrict User"),
-        BotCommand("unmute", "🔊 Admin: Remove Restriction"),
-        BotCommand("ban", "🔨 Admin: Ban Violator"),
-        BotCommand("unban", "🕊️ Admin: Pardon User"),
-        BotCommand("restrict", "🔒 Admin: Content Protection"),
-        BotCommand("binch", "🗑️ Admin: Backup Core"),
-        BotCommand("pmdlt", "⏱️ Admin: Auto-Purge"),
-        BotCommand("ref", "⚙️ Admin: Setup Referral"),
-        BotCommand("get_buttn", "🎥 Admin: Toggle Media History"),
-        BotCommand("stats", "📈 Admin: System Diagnostics"),
-        BotCommand("wait", "🚦 Admin: Registration Lock"),
-        BotCommand("broadcast", "📢 Admin: Global Transmission"),
-        BotCommand("chat", "💬 Admin: Global Chat Protocol")
+        BotCommand("start", "🚀 DASHBOARD & STATUS"),
+        BotCommand("register", "🎭 UPDATE IDENTITY"),
+        BotCommand("me", "📊 DETAILED PROFILE STATS"),
+        BotCommand("referral", "👥 EARN VIP ACCESS"),
+        BotCommand("plans", "💎 VIEW PLANS & BENEFITS"),
+        BotCommand("help", "❓ OPEN COMMAND MENU"),
+        BotCommand("add", "🎁 ADMIN: GRANT PREMIUM"),
+        BotCommand("rem_prem", "✂️ ADMIN: REMOVE PREMIUM"),
+        BotCommand("mute", "🔇 ADMIN: MUTE USER"),
+        BotCommand("unmute", "🔊 ADMIN: UNMUTE USER"),
+        BotCommand("ban", "🔨 ADMIN: BAN USER"),
+        BotCommand("unban", "🕊️ ADMIN: UNBAN USER"),
+        BotCommand("restrict", "🔒 ADMIN: PROTECTION MODE"),
+        BotCommand("binch", "🗑️ ADMIN: SET BACKUP BIN"),
+        BotCommand("pmdlt", "⏱️ ADMIN: AUTO PURGE SETUP"),
+        BotCommand("ref", "⚙️ ADMIN: REFERRAL CONFIG"),
+        BotCommand("get_buttn", "🎥 ADMIN: MEDIA HISTORY"),
+        BotCommand("stats", "📈 ADMIN: LIVE SYSTEM DIAGNOSTICS"),
+        BotCommand("wait", "🚦 ADMIN: REGISTRATION LOCK"),
+        BotCommand("broadcast", "📢 ADMIN: GLOBAL MESSAGE"),
+        BotCommand("chat", "💬 ADMIN: GLOBAL CHAT TOGGLE")
     ])
     
     asyncio.create_task(broadcast_worker(bot))
