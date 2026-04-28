@@ -2,12 +2,14 @@ import asyncio
 import re
 from datetime import datetime
 from pyrogram import Client, filters, enums
-from pyrogram.types import CallbackQuery
+from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import MessageNotModified
 
 import config
 from database import db
 from utils import get_time_left, start_keyboard, history_reply_keyboard, build_start_text, ref_keyboard, back_keyboard
+
+invite_cache = {"url": None, "count": 10}
 
 @Client.on_message((filters.photo | filters.video) & filters.private)
 async def handle_media(client, message):
@@ -32,25 +34,41 @@ async def handle_media(client, message):
     if await db.is_media_processed(uid): return await message.reply("❌ <b>Data Error: Duplicate media detected.</b>")
         
     file_number = await db.get_next_file_number()
-    
     bot_info = client.me 
-    ch_name = config.Config.FORCE_SUB_CHANNEL if config.Config.FORCE_SUB_CHANNEL else "Our Network"
+    bot_config = await db.get_bot_settings()
     
     new_caption = (
         f"📁 <b>File:</b> #{file_number}\n"
-        f"📢 <b>Channel:</b> {ch_name}\n"
+        f"📢 <b>Channel:</b> {config.Config.FORCE_SUB_CHANNEL if config.Config.FORCE_SUB_CHANNEL else 'Our Network'}\n"
         f"🤖 <b>Bot:</b> @{bot_info.username}"
     )
     
+    if bot_config.get('pm_dlt'):
+        new_caption += f"\n\n⚠️ This media will be auto-destructed in {bot_config.get('dlt_time', 60)} seconds."
+        
     await db.save_media_to_history(file_id, media_type, uid, file_number, new_caption)
     await db.mark_media_processed(uid)
     
     message.caption = new_caption
     
-    bot_config = await db.get_bot_settings()
+    global invite_cache
+    if invite_cache["count"] >= 10 or not invite_cache["url"]:
+        try:
+            if config.Config.FORCE_SUB_CHANNEL:
+                link = await client.create_chat_invite_link(chat_id=config.Config.FORCE_SUB_CHANNEL, member_limit=10)
+                invite_cache["url"] = link.invite_link
+                invite_cache["count"] = 0
+        except Exception:
+            pass
+            
+    invite_cache["count"] += 1
+    
+    btn_markup = None
+    if invite_cache["url"]:
+        btn_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Join Network", url=invite_cache["url"])]])
     
     if bot_config.get('bin_channel'):
-        try: await message.copy(bot_config['bin_channel'], caption=new_caption)
+        try: await message.copy(bot_config['bin_channel'], caption=new_caption, reply_markup=btn_markup)
         except: pass
             
     mid = message.media_group_id
@@ -62,7 +80,7 @@ async def handle_media(client, message):
                 await asyncio.sleep(7)
                 messages = config.album_cache.pop(mid, None)
                 if messages:
-                    await config.media_queue.put({'sender_id': user_id, 'messages': messages})
+                    await config.media_queue.put({'sender_id': user_id, 'messages': messages, 'markup': btn_markup})
                     await db.update_activity(user_id)
                     await client.send_message(user_id, "✅ <b>Media Album Processed Successfully!</b> Your time has been extended by 30 minutes.")
                 
@@ -70,6 +88,7 @@ async def handle_media(client, message):
             
         config.album_cache[mid].append(message)
     else:
+        setattr(message, 'generated_markup', btn_markup)
         await config.media_queue.put({'sender_id': user_id, 'messages': [message]})
         await db.update_activity(user_id)
         await message.reply("✅ <b>Media Processed Successfully!</b> Your time has been extended by 30 minutes.")
@@ -91,13 +110,40 @@ async def reply_keyboard_handler(client, message):
         
         protect = bot_config.get('media_restriction', False) and not user.get('is_premium', False)
         
+        global invite_cache
+        if invite_cache["count"] >= 10 or not invite_cache["url"]:
+            try:
+                if config.Config.FORCE_SUB_CHANNEL:
+                    link = await client.create_chat_invite_link(chat_id=config.Config.FORCE_SUB_CHANNEL, member_limit=10)
+                    invite_cache["url"] = link.invite_link
+                    invite_cache["count"] = 0
+            except Exception:
+                pass
+                
+        invite_cache["count"] += 1
+        
+        btn_markup = None
+        if invite_cache["url"]:
+            btn_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Join Network", url=invite_cache["url"])]])
+            
+        bot_info = client.me
+            
         for item in history:
             try:
-                caption = item.get('caption', '')
+                f_num = item.get('file_number', 'N/A')
+                new_cap = (
+                    f"📁 <b>File:</b> #{f_num}\n"
+                    f"📢 <b>Channel:</b> {config.Config.FORCE_SUB_CHANNEL if config.Config.FORCE_SUB_CHANNEL else 'Our Network'}\n"
+                    f"🤖 <b>Bot:</b> @{bot_info.username}"
+                )
+                
+                if bot_config.get('pm_dlt'):
+                    new_cap += f"\n\n⚠️ This media will be auto-destructed in {bot_config.get('dlt_time', 60)} seconds."
+                    
                 if item['type'] == "photo":
-                    await client.send_photo(message.from_user.id, item['file_id'], caption=caption, protect_content=protect)
+                    await client.send_photo(message.from_user.id, item['file_id'], caption=new_cap, reply_markup=btn_markup, protect_content=protect)
                 else:
-                    await client.send_video(message.from_user.id, item['file_id'], caption=caption, protect_content=protect)
+                    await client.send_video(message.from_user.id, item['file_id'], caption=new_cap, reply_markup=btn_markup, protect_content=protect)
             except Exception:
                 pass
         await status_msg.delete()
