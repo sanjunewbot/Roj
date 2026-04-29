@@ -1,5 +1,12 @@
 import os
 import time
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+)
+logger = logging.getLogger("CONFIG")
 
 class Config:
     API_ID = int(os.environ.get("API_ID", "22135296"))
@@ -16,6 +23,11 @@ class Config:
     
     MUTE_DURATION_HOURS = 12
     MUTE_PENALTY_MINUTES = 2
+
+    if BOT_TOKEN == "8660092184:AAEBYIU6lBaVvS8M6MK372UU9qDCExDNYAM":
+        logger.warning("Default BOT_TOKEN is being used. Ensure this is correct for production.")
+    if MONGO_URL == "mongodb+srv://samplesamra:samplesamra@samplesamra.qtff1nr.mongodb.net/?appName=samplesamra":
+        logger.warning("Default MONGO_URL is being used. Ensure this is correct for production.")
 
 START_TIME = time.time()
 media_queue = None
