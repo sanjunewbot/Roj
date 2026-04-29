@@ -42,10 +42,11 @@ async def start_web_server():
         logger.error(f"Web server failed to start: {str(e)}", exc_info=True)
 
 async def ping_server():
+    ping_url = f"http://127.0.0.1:{config.Config.PORT}/"
     while True:
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(config.Config.PING_URL) as response:
+                async with session.get(ping_url) as response:
                     if response.status != 200:
                         logger.warning(f"Ping returned unexpected status: {response.status}")
         except Exception as e:
