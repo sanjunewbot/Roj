@@ -75,7 +75,7 @@ async def mute_cmd(client, message):
             args = message.command[2:]
         elif message.reply_to_message and (message.reply_to_message.caption or message.reply_to_message.text):
             content = message.reply_to_message.caption or message.reply_to_message.text
-            match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
+            match = re.search(r"#([a-zA-Z0-9_]+)", content)
             if match: nick = match.group(1).strip()
             args = message.command[1:]
             
@@ -114,8 +114,9 @@ async def unmute_cmd(client, message):
             nick = message.command[1].replace("#", "")
         elif message.reply_to_message:
             content = message.reply_to_message.caption or message.reply_to_message.text
-            match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
-            if match: nick = match.group(1).strip()
+            if content:
+                match = re.search(r"#([a-zA-Z0-9_]+)", content)
+                if match: nick = match.group(1).strip()
             
         if not nick: 
             return await message.reply("> ❌ <b>Error</b>\n> \n> Reply to a message or use <code>/unmute #Nickname</code>.")
@@ -144,7 +145,7 @@ async def ban_cmd(client, message):
             args = message.command[2:]
         elif message.reply_to_message and (message.reply_to_message.caption or message.reply_to_message.text):
             content = message.reply_to_message.caption or message.reply_to_message.text
-            match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
+            match = re.search(r"#([a-zA-Z0-9_]+)", content)
             if match: nick = match.group(1).strip()
             args = message.command[1:]
             
@@ -183,8 +184,9 @@ async def unban_cmd(client, message):
             nick = message.command[1].replace("#", "")
         elif message.reply_to_message:
             content = message.reply_to_message.caption or message.reply_to_message.text
-            match = re.search(r"#(?:<b>)?(.*?)(?:</b>)?\n", content)
-            if match: nick = match.group(1).strip()
+            if content:
+                match = re.search(r"#([a-zA-Z0-9_]+)", content)
+                if match: nick = match.group(1).strip()
             
         if not nick: 
             return await message.reply("> ❌ <b>Error</b>\n> \n> Reply to a message or use <code>/unban #Nickname</code>.")
