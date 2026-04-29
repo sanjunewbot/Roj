@@ -1,3 +1,4 @@
+import re
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime, timedelta
 from config import Config
@@ -43,7 +44,7 @@ class db:
 
     @staticmethod
     async def get_user_by_nickname(nickname):
-        return await users.find_one({"nickname": nickname})
+        return await users.find_one({"nickname": {"$regex": f"^{re.escape(nickname)}$", "$options": "i"}})
 
     @staticmethod
     async def add_user(user_id, nickname, inviter_id=None):
