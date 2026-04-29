@@ -4,6 +4,7 @@ from datetime import datetime
 import pyrogram.utils
 from pyrogram import Client, enums
 from pyrogram.types import BotCommand
+from pyrogram.errors import UserIsBlocked
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiohttp import web
 import aiohttp
@@ -68,8 +69,11 @@ async def run_2h_reminders():
             try:
                 await bot.send_message(u['user_id'], reminder_text)
                 await db.update_reminded(u['user_id'])
+            except UserIsBlocked:
+                logger.warning(f"User {u['user_id']} blocked the bot. Removing from database.")
+                await db.remove_user(u['user_id'])
             except Exception as e:
-                logger.error(f"Failed to send reminder to {u['user_id']}: {str(e)}", exc_info=True)
+                logger.error(f"Failed to send reminder to {u['user_id']}: {str(e)}")
             await asyncio.sleep(0.1)
     except Exception as e:
         logger.error(f"Failed to process reminders: {str(e)}", exc_info=True)
