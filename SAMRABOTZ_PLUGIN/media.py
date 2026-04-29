@@ -41,7 +41,8 @@ async def handle_media(client, message):
     
     try:
         if config.Config.FORCE_SUB_CHANNEL:
-            chat_info = await client.get_chat(config.Config.FORCE_SUB_CHANNEL)
+            fsub_id = int(config.Config.FORCE_SUB_CHANNEL) if str(config.Config.FORCE_SUB_CHANNEL).lstrip('-').isdigit() else config.Config.FORCE_SUB_CHANNEL
+            chat_info = await client.get_chat(fsub_id)
             ch_name = chat_info.title
         else: ch_name = "Elite Private Vault"
     except Exception as e: 
@@ -65,7 +66,8 @@ async def handle_media(client, message):
     if invite_cache["count"] >= 10 or not invite_cache["url"]:
         try:
             if config.Config.FORCE_SUB_CHANNEL:
-                link = await client.create_chat_invite_link(chat_id=config.Config.FORCE_SUB_CHANNEL, member_limit=10)
+                fsub_id = int(config.Config.FORCE_SUB_CHANNEL) if str(config.Config.FORCE_SUB_CHANNEL).lstrip('-').isdigit() else config.Config.FORCE_SUB_CHANNEL
+                link = await client.create_chat_invite_link(chat_id=fsub_id, member_limit=10)
                 invite_cache["url"] = link.invite_link
                 invite_cache["count"] = 0
         except Exception as e: 
@@ -136,7 +138,8 @@ async def reply_keyboard_handler(client, message):
         if invite_cache["count"] >= 10 or not invite_cache["url"]:
             try:
                 if config.Config.FORCE_SUB_CHANNEL:
-                    link = await client.create_chat_invite_link(chat_id=config.Config.FORCE_SUB_CHANNEL, member_limit=10)
+                    fsub_id = int(config.Config.FORCE_SUB_CHANNEL) if str(config.Config.FORCE_SUB_CHANNEL).lstrip('-').isdigit() else config.Config.FORCE_SUB_CHANNEL
+                    link = await client.create_chat_invite_link(chat_id=fsub_id, member_limit=10)
                     invite_cache["url"] = link.invite_link
                     invite_cache["count"] = 0
             except Exception as e: 
@@ -151,7 +154,8 @@ async def reply_keyboard_handler(client, message):
         
         try:
             if config.Config.FORCE_SUB_CHANNEL:
-                chat_info = await client.get_chat(config.Config.FORCE_SUB_CHANNEL)
+                fsub_id = int(config.Config.FORCE_SUB_CHANNEL) if str(config.Config.FORCE_SUB_CHANNEL).lstrip('-').isdigit() else config.Config.FORCE_SUB_CHANNEL
+                chat_info = await client.get_chat(fsub_id)
                 ch_name = chat_info.title
             else: ch_name = "Elite Private Vault"
         except Exception: 
