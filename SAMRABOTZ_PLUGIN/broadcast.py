@@ -1,10 +1,13 @@
 import asyncio
+import logging
 from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import InputMediaPhoto, InputMediaVideo
 from pyrogram.errors import FloodWait, UserIsBlocked
 import config
 from database import db
+
+logger = logging.getLogger("BROADCAST")
 
 async def broadcast_worker(bot: Client):
     while True:
@@ -20,13 +23,13 @@ async def broadcast_worker(bot: Client):
         user_info = await db.get_user(sender_id)
         
         if not user_info:
+            logger.warning(f"Sender {sender_id} not found in database during broadcast.")
             config.media_queue.task_done()
             continue
             
         bot_config = await db.get_bot_settings()
         is_restricted = bot_config.get('media_restriction', False)
         
-        # Ekdum same VIP caption jo media.py ne banaya hai wahi use hoga
         caption_text = messages[0].caption if messages[0].caption else ""
         
         active_users = await db.get_active_users()
@@ -46,21 +49,30 @@ async def broadcast_worker(bot: Client):
                             elif m.video: media_list.append(InputMediaVideo(m.video.file_id, caption=cap))
                         if media_list: sent = await bot.send_media_group(target['user_id'], media_list, protect_content=protect)
                     else:
-                        # Single media ke sath VIP btn_markup attach ho jayega
                         sent = [await bot.copy_message(target['user_id'], sender_id, messages[0].id, caption=caption_text, reply_markup=btn_markup, protect_content=protect)]
                         
                     if bot_config['pm_dlt']:
                         async def dlt(cid, mids):
                             await asyncio.sleep(bot_config['dlt_time'])
                             try: await bot.delete_messages(cid, mids)
-                            except: pass
+                            except Exception as e: logger.error(f"Failed to delete messages for {cid}: {str(e)}", exc_info=True)
                         asyncio.create_task(dlt(target['user_id'], [m.id for m in sent]))
                         
                     await asyncio.sleep(0.05)
                     break
-                except FloodWait as e: await asyncio.sleep(e.value + 3)
-                except UserIsBlocked: await db.remove_user(target['user_id']); break
-                except Exception: break
+                except FloodWait as e:
+                    logger.warning(f"FloodWait of {e.value}s encountered while broadcasting to {target['user_id']} from {sender_id}. Reason: Rapid requests.")
+                    try:
+                        await bot.send_message(sender_id, f"> ⚠️ <b>Network delay active</b>\n> \n> Your broadcast is experiencing a rate limit delay.\n> <i>Approximate wait time: {e.value} seconds.</i>")
+                    except Exception:
+                        pass
+                    await asyncio.sleep(e.value + 3)
+                except UserIsBlocked: 
+                    await db.remove_user(target['user_id'])
+                    break
+                except Exception as e: 
+                    logger.error(f"Unexpected error broadcasting to {target['user_id']}: {str(e)}", exc_info=True)
+                    break
                 
         if len(messages) == 1: await asyncio.sleep(2)
         config.media_queue.task_done()
@@ -70,10 +82,10 @@ async def broadcast_worker(bot: Client):
 async def broadcast_cmd(client, message):
     try:
         if not message.reply_to_message:
-            return await message.reply("📢 <b>Instruction:</b> Reply to a message or media to broadcast globally.")
+            return await message.reply("> 📢 <b>Instruction</b>\n> \n> Reply to a message or media to broadcast globally.")
             
         b_msg = message.reply_to_message
-        status_msg = await message.reply("⏳ <b>Broadcasting...</b>")
+        status_msg = await message.reply("> ⏳ <b>Broadcasting in progress</b>\n> \n> <i>Please wait while the data stream is injected.</i>")
         sent = failed = deleted = 0
         all_users = await db.get_all_users()
         
@@ -81,11 +93,22 @@ async def broadcast_cmd(client, message):
             while True:
                 try:
                     await b_msg.copy(u['user_id'])
-                    sent += 1; break
-                except FloodWait as e: await asyncio.sleep(e.value + 3)
-                except UserIsBlocked: await db.remove_user(u['user_id']); deleted += 1; break
-                except Exception: failed += 1; break
+                    sent += 1
+                    break
+                except FloodWait as e: 
+                    logger.warning(f"FloodWait of {e.value}s during global broadcast to {u['user_id']}.")
+                    await asyncio.sleep(e.value + 3)
+                except UserIsBlocked: 
+                    await db.remove_user(u['user_id'])
+                    deleted += 1
+                    break
+                except Exception as e: 
+                    logger.error(f"Broadcast failed for {u['user_id']}: {str(e)}", exc_info=True)
+                    failed += 1
+                    break
             await asyncio.sleep(0.05)
             
-        await status_msg.edit_text(f"🏁 <b>Done!</b>\n\n🟢 Success: {sent}\n🔴 Failed: {failed}\n🗑️ Deleted: {deleted}")
-    except Exception as e: await message.reply(f"❌ <b>Fault:</b> {e}")
+        await status_msg.edit_text(f"> 🏁 <b>Broadcast complete</b>\n> \n> 🟢 Success: {sent}\n> 🔴 Failed: {failed}\n> 🗑️ Deleted: {deleted}")
+    except Exception as e: 
+        logger.error(f"Global broadcast command failed: {str(e)}", exc_info=True)
+        await message.reply(f"> ❌ <b>System fault</b>\n> \n> An error occurred: {e}")
