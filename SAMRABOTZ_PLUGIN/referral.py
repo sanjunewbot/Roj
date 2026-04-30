@@ -2,7 +2,7 @@ import logging
 from pyrogram import Client, filters
 import config
 from database import db
-from utils import ref_keyboard
+from utils import ref_keyboard, send_raw_api_message
 
 logger = logging.getLogger("REFERRAL")
 
@@ -17,8 +17,7 @@ async def referral_cmd(client, message):
     
     bot_info = client.me
     ref_link = f"https://t.me/{bot_info.username}?start=ref_{message.from_user.id}"
-    
-    await message.reply(
+    text = (
         f"> 👥 <b>Referral network</b>\n"
         f"> \n"
         f"> {bot_config.get('ref_text', '')}\n"
@@ -26,9 +25,13 @@ async def referral_cmd(client, message):
         f"> 🔗 <b>Your exclusive link:</b>\n"
         f"> <code>{ref_link}</code>\n"
         f"> \n"
-        f"> 🪙 <b>Points:</b> {user['ref_balance']}/{bot_config['ref_count']}", 
-        reply_markup=ref_keyboard(), 
-        disable_web_page_preview=True
+        f"> 🪙 <b>Points:</b> {user['ref_balance']}/{bot_config['ref_count']}"
+    )
+    
+    await send_raw_api_message(
+        message.from_user.id,
+        text,
+        buttons=ref_keyboard()
     )
 
 @Client.on_message(filters.command("ref") & filters.user(config.Config.ADMIN_IDS))
