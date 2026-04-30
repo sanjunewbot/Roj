@@ -3,11 +3,11 @@ import time
 import logging
 from datetime import datetime
 from pyrogram import Client, filters
-from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import CallbackQuery
 from pyrogram.errors import MessageNotModified
 import config
 from database import db
-from utils import get_time_left, start_keyboard, back_keyboard, ref_keyboard
+from utils import get_time_left, start_keyboard, back_keyboard, ref_keyboard, copy_raw_api_message, send_raw_api_media, edit_raw_api_message
 
 logger = logging.getLogger("MEDIA")
 
@@ -77,11 +77,11 @@ async def handle_media(client, message):
     
     btn_markup = None
     if invite_cache["url"]: 
-        btn_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Join Network", url=invite_cache["url"])]])
+        btn_markup = [[{"text": "Join Network", "url": invite_cache["url"], "style": "primary"}]]
         
     if bot_config.get('bin_channel'):
         try: 
-            await message.copy(bot_config['bin_channel'], caption=new_caption, reply_markup=btn_markup)
+            await copy_raw_api_message(bot_config['bin_channel'], message.chat.id, message.id, caption=new_caption, buttons=btn_markup)
         except Exception as e: 
             logger.error(f"Failed to copy media to bin channel {bot_config['bin_channel']}: {str(e)}", exc_info=True)
             
@@ -149,7 +149,7 @@ async def reply_keyboard_handler(client, message):
         
         btn_markup = None
         if invite_cache["url"]: 
-            btn_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Join Network", url=invite_cache["url"])]])
+            btn_markup = [[{"text": "Join Network", "url": invite_cache["url"], "style": "primary"}]]
         bot_info = client.me
         
         try:
@@ -173,9 +173,9 @@ async def reply_keyboard_handler(client, message):
                 )
                 
                 if item['type'] == "photo": 
-                    await client.send_photo(message.from_user.id, item['file_id'], caption=new_cap, reply_markup=btn_markup, protect_content=protect)
+                    await send_raw_api_media(message.from_user.id, item['file_id'], "photo", caption=new_cap, buttons=btn_markup, protect_content=protect)
                 else: 
-                    await client.send_video(message.from_user.id, item['file_id'], caption=new_cap, reply_markup=btn_markup, protect_content=protect)
+                    await send_raw_api_media(message.from_user.id, item['file_id'], "video", caption=new_cap, buttons=btn_markup, protect_content=protect)
                     
                 await asyncio.sleep(0.5)
             except Exception as e: 
@@ -204,13 +204,13 @@ async def cb_handler(client, query: CallbackQuery):
                 "> \n"
                 "> 🚨 <b>Penalty for violation: Permanent ban.</b>"
             )
-            await query.message.edit_text(rules_text, reply_markup=back_keyboard())
+            await edit_raw_api_message(query.message.chat.id, query.message.id, rules_text, buttons=back_keyboard())
         elif query.data == "show_status":
             if user.get('is_premium'): 
                 text = "> ⏳ <b>Account time remaining</b>\n> \n> Unlimited VIP Status is currently active."
             else: 
                 text = f"> ⏳ <b>Account time remaining</b>\n> \n> Remaining: {get_time_left(user['active_until'])}\n> \n> <i>Send media files to replenish your active time!</i>"
-            await query.message.edit_text(text, reply_markup=back_keyboard())
+            await edit_raw_api_message(query.message.chat.id, query.message.id, text, buttons=back_keyboard())
         elif query.data in ["back_start", "refresh_start"]:
             time_val = "Unlimited VIP" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
             status_val = "VIP Premium" if user.get('is_premium') else "Standard Free"
@@ -228,7 +228,7 @@ async def cb_handler(client, query: CallbackQuery):
                 f"> \n"
                 f"> 📩 <b>Join now:</b> <a href='https://t.me/roomjoinus'>@roomjoinus</a>"
             )
-            await query.message.edit_text(welcome_msg, reply_markup=start_keyboard(bot_config.get('ref_system'), bot_config.get('tutorial_link')), disable_web_page_preview=True)
+            await edit_raw_api_message(query.message.chat.id, query.message.id, welcome_msg, buttons=start_keyboard(bot_config.get('ref_system'), bot_config.get('tutorial_link')))
         elif query.data in ["show_referral", "refresh_ref"]:
             bot_info = client.me
             ref_link = f"https://t.me/{bot_info.username}?start=ref_{user['user_id']}"
@@ -242,7 +242,7 @@ async def cb_handler(client, query: CallbackQuery):
                 f"> \n"
                 f"> 🪙 <b>Points accumulated:</b> {user['ref_balance']}/{bot_config['ref_count']}"
             )
-            await query.message.edit_text(text, reply_markup=ref_keyboard(), disable_web_page_preview=True)
+            await edit_raw_api_message(query.message.chat.id, query.message.id, text, buttons=ref_keyboard())
     except MessageNotModified: 
         pass
     except Exception as e: 
