@@ -6,8 +6,13 @@ from pyrogram.types import InputMediaPhoto, InputMediaVideo
 from pyrogram.errors import FloodWait, UserIsBlocked
 import config
 from database import db
+from utils import copy_raw_api_message
 
 logger = logging.getLogger("BROADCAST")
+
+class MockMessage:
+    def __init__(self, msg_id):
+        self.id = msg_id
 
 async def broadcast_worker(bot: Client):
     while True:
@@ -49,9 +54,19 @@ async def broadcast_worker(bot: Client):
                             elif m.video: media_list.append(InputMediaVideo(m.video.file_id, caption=cap))
                         if media_list: sent = await bot.send_media_group(target['user_id'], media_list, protect_content=protect)
                     else:
-                        sent = [await bot.copy_message(target['user_id'], sender_id, messages[0].id, caption=caption_text, reply_markup=btn_markup, protect_content=protect)]
+                        resp = await copy_raw_api_message(target['user_id'], sender_id, messages[0].id, caption=caption_text, buttons=btn_markup, protect_content=protect)
+                        if resp and resp.get("ok"):
+                            sent = [MockMessage(resp['result']['message_id'])]
+                        else:
+                            if resp:
+                                err_code = resp.get("error_code")
+                                if err_code == 429:
+                                    raise FloodWait(value=resp.get("parameters", {}).get("retry_after", 3))
+                                elif err_code == 403:
+                                    raise UserIsBlocked()
+                            sent = []
                         
-                    if bot_config['pm_dlt']:
+                    if bot_config['pm_dlt'] and sent:
                         async def dlt(cid, mids):
                             await asyncio.sleep(bot_config['dlt_time'])
                             try: await bot.delete_messages(cid, mids)
