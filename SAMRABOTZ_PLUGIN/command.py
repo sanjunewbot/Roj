@@ -2,10 +2,9 @@ import random
 import logging
 from datetime import datetime
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import config
 from database import db, users
-from utils import parse_duration, start_keyboard, history_reply_keyboard, get_time_left
+from utils import parse_duration, start_keyboard, history_reply_keyboard, get_time_left, send_raw_api_message
 from SAMRABOTZ_PLUGIN.pforce import check_fsub, ADJECTIVES, NOUNS
 
 logger = logging.getLogger("COMMAND")
@@ -50,11 +49,11 @@ async def start_cmd(client, message):
     is_joined, result = await check_fsub(client, user_id)
     if not is_joined:
         if result == "not_admin": 
-            return await message.reply("> ⚠️ <b>System error</b>\n> \n> Bot is not an admin in the mandatory channel(s).")
+            return await send_raw_api_message(user_id, "> ⚠️ <b>System error</b>\n> \n> Bot is not an admin in the mandatory channel(s).")
         buttons = []
         for item in result: 
-            buttons.append([InlineKeyboardButton(item["text"], url=item["url"])])
-        return await message.reply("> ❌ <b>Access denied</b>\n> \n> You must join or send join requests to all mandatory networks below.\n> \n> <i>Note: Once requested, come back and type /start</i>", reply_markup=InlineKeyboardMarkup(buttons))
+            buttons.append([{"text": item["text"], "url": item["url"], "style": "danger"}])
+        return await send_raw_api_message(user_id, "> ❌ <b>Access denied</b>\n> \n> You must join or send join requests to all mandatory networks below.\n> \n> <i>Note: Once requested, come back and type /start</i>", buttons=buttons)
         
     time_val = "Unlimited VIP" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
     status_val = "VIP Premium" if user.get('is_premium') else "Standard Free"
@@ -74,10 +73,10 @@ async def start_cmd(client, message):
         f"> 📩 <b>Join now:</b> <a href='https://t.me/roomjoinus'>@roomjoinus</a>"
     )
     t_link = bot_config.get("tutorial_link")
-    await message.reply(welcome_msg, reply_markup=start_keyboard(bot_config.get('ref_system'), t_link), disable_web_page_preview=True)
+    await send_raw_api_message(user_id, welcome_msg, buttons=start_keyboard(bot_config.get('ref_system'), t_link))
     
     menu_msg = "> 🎛 <b>Keyboard deployed</b> 👇"
-    await message.reply(menu_msg, reply_markup=history_reply_keyboard(bot_config.get('get_btn_enabled')))
+    await send_raw_api_message(user_id, menu_msg, reply_markup=history_reply_keyboard(bot_config.get('get_btn_enabled')))
 
 @Client.on_message(filters.command("register") & filters.private)
 async def register_cmd(client, message):
