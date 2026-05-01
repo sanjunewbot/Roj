@@ -85,8 +85,16 @@ async def register_cmd(client, message):
     if len(message.command) < 2: 
         return await message.reply("> 📝 <b>Format instruction</b>\n> \n> Use <code>/register [NewName]</code> to update your identity.")
         
-    await users.update_one({"user_id": message.from_user.id}, {"$set": {"nickname": message.command[1]}})
-    await message.reply(f"> ✅ <b>Identity updated</b>\n> \n> Your anonymous identity has been updated to <b>{message.command[1]}</b>.")
+    user_id = message.from_user.id
+    new_name = message.command[1]
+    user = await db.get_user(user_id)
+    
+    if not user:
+        await db.add_user(user_id, new_name)
+    else:
+        await users.update_one({"user_id": user_id}, {"$set": {"nickname": new_name}})
+        
+    await message.reply(f"> ✅ <b>Identity updated</b>\n> \n> Your anonymous identity has been updated to <b>{new_name}</b>.")
 
 @Client.on_message(filters.command("help") & filters.private)
 async def help_cmd(client, message):
