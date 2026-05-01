@@ -16,7 +16,8 @@ logger = logging.getLogger("MEDIA")
 invite_cache = {"url": None, "count": 10}
 history_cooldowns = {}
 
-@Client.on_message((filters.photo | filters.video) & filters.private)
+# FIXED: Added filters.incoming to prevent the bot from catching its own history messages
+@Client.on_message((filters.photo | filters.video) & filters.private & filters.incoming)
 async def handle_media(client, message):
     user_id = message.from_user.id
     user = await db.get_user(user_id)
@@ -38,7 +39,7 @@ async def handle_media(client, message):
     media_type = "photo" if message.photo else "video"
     
     if await db.is_media_processed(uid): 
-        return await message.reply("> ❌ <b>Data error</b>\n> \n> Duplicate media detected.")
+        return await message.reply("> ❌ <b>Data error</b>\n> \n> Duplicate media detected. Please send a new file.")
         
     file_number = await db.get_next_file_number()
     bot_info = client.me 
@@ -112,7 +113,8 @@ async def handle_media(client, message):
         await db.update_activity(user_id)
         await message.reply("> ✅ <b>Media processed successfully</b>\n> \n> Your time has been extended by 30 minutes.")
 
-@Client.on_message(filters.text & filters.private & filters.regex("^(GET MEDIA HISTORY)$"))
+# FIXED: Added filters.incoming here as well for consistency
+@Client.on_message(filters.text & filters.private & filters.regex("^(GET MEDIA HISTORY)$") & filters.incoming)
 async def reply_keyboard_handler(client, message):
     user_id = message.from_user.id
     now = time.time()
