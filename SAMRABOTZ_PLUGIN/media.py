@@ -1,5 +1,6 @@
 import asyncio
 import time
+import random
 import logging
 from datetime import datetime
 from pyrogram import Client, filters
@@ -8,6 +9,7 @@ from pyrogram.errors import MessageNotModified
 import config
 from database import db
 from utils import get_time_left, start_keyboard, back_keyboard, ref_keyboard, copy_raw_api_message, send_raw_api_media, edit_raw_api_message
+from SAMRABOTZ_PLUGIN.pforce import ADJECTIVES, NOUNS
 
 logger = logging.getLogger("MEDIA")
 
@@ -18,8 +20,11 @@ history_cooldowns = {}
 async def handle_media(client, message):
     user_id = message.from_user.id
     user = await db.get_user(user_id)
+    
     if not user: 
-        return await message.reply("> ⚠️ <b>System alert</b>\n> \n> You are not registered. Please run /start to initialize the bot.")
+        random_name = f"{random.choice(ADJECTIVES)}{random.choice(NOUNS)}{random.randint(1000, 9999)}"
+        await db.add_user(user_id, random_name)
+        user = await db.get_user(user_id)
         
     if user.get('is_banned'): return
     
