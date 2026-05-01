@@ -11,7 +11,7 @@ from database import db
 
 logger = logging.getLogger("CHAT")
 
-@Client.on_message(filters.text & filters.private & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial", "updatecmds"]) & ~filters.regex("^(GET MEDIA HISTORY)$"), group=1)
+@Client.on_message(filters.text & filters.private & filters.incoming & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial", "updatecmds"]) & ~filters.regex("^(GET MEDIA HISTORY)$"), group=1)
 async def chat_handler(client, message):
     user_id = message.from_user.id
     
