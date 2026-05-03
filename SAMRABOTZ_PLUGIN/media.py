@@ -1,69 +1,88 @@
 import asyncio
 import time
-import random
+import re
+import aiohttp
 import logging
 from datetime import datetime
 from pyrogram import Client, filters
-from pyrogram.types import CallbackQuery
+from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import MessageNotModified
 import config
 from database import db
-from utils import get_time_left, start_keyboard, back_keyboard, ref_keyboard, copy_raw_api_message, send_raw_api_media, edit_raw_api_message
-from SAMRABOTZ_PLUGIN.pforce import ADJECTIVES, NOUNS
-
-logger = logging.getLogger("MEDIA")
+from utils import get_time_left, start_keyboard, back_keyboard, ref_keyboard
 
 invite_cache = {"url": None, "count": 10}
 history_cooldowns = {}
 
-# FIXED: Added filters.incoming to prevent the bot from catching its own history messages
-@Client.on_message((filters.photo | filters.video) & filters.private & filters.incoming)
+async def aio_reply(chat_id, text, reply_to=None):
+    url = f"https://api.telegram.org/bot{config.Config.BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+    if reply_to: payload["reply_to_message_id"] = reply_to
+    async with aiohttp.ClientSession() as session:
+        try:
+            await session.post(url, json=payload)
+        except Exception as e:
+            logging.getLogger("MAIN").error(f"Media aio_reply Error: {e}", exc_info=True)
+
+def create_action_buttons(invite_url, report_nick=None):
+    keys = []
+    if invite_url:
+        keys.append([{"text": "𝕁𝕆𝕀ℕ ℕ𝔼𝕋𝕎𝕆ℝ𝕂", "url": invite_url, "style": "primary"}])
+    if report_nick:
+        keys.append([{"text": "🚨 ℝ𝔼ℙ𝕆ℝ𝕋", "callback_data": f"report_{report_nick}", "style": "danger"}])
+    return {"inline_keyboard": keys} if keys else None
+
+async def send_styled_media(chat_id, media_type, file_id, caption, protect_content, reply_markup):
+    url = f"https://api.telegram.org/bot{config.Config.BOT_TOKEN}/{'sendPhoto' if media_type == 'photo' else 'sendVideo'}"
+    payload = {
+        "chat_id": chat_id,
+        media_type: file_id,
+        "caption": caption,
+        "parse_mode": "HTML",
+        "protect_content": protect_content
+    }
+    if reply_markup: payload["reply_markup"] = reply_markup
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=payload) as resp:
+            if resp.status == 429:
+                r = await resp.json()
+                await asyncio.sleep(r.get("parameters", {}).get("retry_after", 3))
+                return await send_styled_media(chat_id, media_type, file_id, caption, protect_content, reply_markup)
+
+@Client.on_message((filters.photo | filters.video) & filters.private)
 async def handle_media(client, message):
     user_id = message.from_user.id
     user = await db.get_user(user_id)
-    
-    if not user: 
-        random_name = f"{random.choice(ADJECTIVES)}{random.choice(NOUNS)}{random.randint(1000, 9999)}"
-        await db.add_user(user_id, random_name)
-        user = await db.get_user(user_id)
-        
+    if not user: return await aio_reply(user_id, "> ⚠️ You are not registered. Please run /start to initialize the bot.")
     if user.get('is_banned'): return
-    
     if user.get('chat_muted_until') and user['chat_muted_until'] > datetime.now(): 
-        mute_time = user['chat_muted_until'].strftime('%H:%M %d/%m')
-        return await message.reply(f"> 🔇 <b>Access denied: You are muted</b>\n> \n> Restriction lifts at: {mute_time}\n> <i>Transmission and reception of media files are disabled.</i>")
-        
+        return await aio_reply(user_id, f"> 🔇 <b>ACCESS DENIED: You are currently muted.</b>\n> Restriction lifts at: {user['chat_muted_until'].strftime('%H:%M %d/%m')}\n> Transmission and reception of media files are disabled.")
+    
     media_obj = message.photo or message.video
     uid = media_obj.file_unique_id
     file_id = media_obj.file_id
     media_type = "photo" if message.photo else "video"
+    if await db.is_media_processed(uid): return await aio_reply(user_id, "> ❌ <b>Data Error: Duplicate media detected.</b>")
     
-    if await db.is_media_processed(uid): 
-        return await message.reply("> ❌ <b>Data error</b>\n> \n> Duplicate media detected. Please send a new file.")
-        
     file_number = await db.get_next_file_number()
     bot_info = client.me 
     bot_config = await db.get_bot_settings()
     
     try:
         if config.Config.FORCE_SUB_CHANNEL:
-            fsub_id = int(config.Config.FORCE_SUB_CHANNEL) if str(config.Config.FORCE_SUB_CHANNEL).lstrip('-').isdigit() else config.Config.FORCE_SUB_CHANNEL
-            chat_info = await client.get_chat(fsub_id)
+            chat_info = await client.get_chat(config.Config.FORCE_SUB_CHANNEL)
             ch_name = chat_info.title
-        else: ch_name = "Elite Private Vault"
-    except Exception as e: 
-        logger.warning(f"Could not fetch channel info, using default. Error: {str(e)}")
-        ch_name = "Elite Private Vault"
-        
+        else: ch_name = "𝔼𝕃𝕀𝕋𝔼 ℙℝ𝕀𝕍𝔸𝕋𝔼 𝕍𝔸𝕌𝕃𝕋"
+    except: ch_name = "𝔼𝕃𝕀𝕋𝔼 ℙℝ𝕀𝕍𝔸𝕋𝔼 𝕍𝔸𝕌𝕃𝕋"
+    
     new_caption = (
-        f"> 👤 <b>User:</b> #{user['nickname'].upper()}\n"
-        f"> 📁 <b>File:</b> #{file_number}\n"
-        f"> 📢 <b>Network:</b> {ch_name}\n"
-        f"> 🤖 <b>Bot:</b> @{bot_info.username}"
+        f"👤 <b>𝕌𝕊𝔼ℝ:</b> #{user['nickname'].upper()}\n"
+        f"📁 <b>𝔽𝕀𝕃𝔼:</b> #{file_number}\n"
+        f"📢 <b>ℕ𝔼𝕋𝕎𝕆ℝ𝕂:</b> {ch_name}\n"
+        f"🤖 <b>𝔹𝕆𝕋:</b> @{bot_info.username}"
     )
-    if bot_config.get('pm_dlt'): 
-        new_caption += f"\n> \n> ⚠️ <i>This media will auto-destruct in {bot_config.get('dlt_time', 60)} seconds.</i>"
-        
+    if bot_config.get('pm_dlt'): new_caption += f"\n\n⚠️ 𝕋ℍ𝕀𝕊 𝕄𝔼𝔻𝕀𝔸 𝕎𝕀𝕃𝕃 𝔹𝔼 𝔸𝕌𝕋𝕆-𝔻𝔼𝕊𝕋ℝ𝕌ℂ𝕋𝔼𝔻 𝕀ℕ {bot_config.get('dlt_time', 60)} 𝕊𝔼ℂ𝕆ℕ𝔻𝕊."
+    
     await db.save_media_to_history(file_id, media_type, uid, file_number, new_caption)
     await db.mark_media_processed(uid)
     message.caption = new_caption
@@ -72,25 +91,18 @@ async def handle_media(client, message):
     if invite_cache["count"] >= 10 or not invite_cache["url"]:
         try:
             if config.Config.FORCE_SUB_CHANNEL:
-                fsub_id = int(config.Config.FORCE_SUB_CHANNEL) if str(config.Config.FORCE_SUB_CHANNEL).lstrip('-').isdigit() else config.Config.FORCE_SUB_CHANNEL
-                link = await client.create_chat_invite_link(chat_id=fsub_id, member_limit=10)
+                link = await client.create_chat_invite_link(chat_id=config.Config.FORCE_SUB_CHANNEL, member_limit=10)
                 invite_cache["url"] = link.invite_link
                 invite_cache["count"] = 0
-        except Exception as e: 
-            logger.error(f"Failed to generate invite link: {str(e)}", exc_info=True)
-            
+        except Exception: pass
     invite_cache["count"] += 1
     
-    btn_markup = None
-    if invite_cache["url"]: 
-        btn_markup = [[{"text": "Join Network", "url": invite_cache["url"], "style": "primary"}]]
-        
+    btn_markup = InlineKeyboardMarkup([[InlineKeyboardButton("𝕁𝕆𝕀ℕ ℕ𝔼𝕋𝕎𝕆ℝ𝕂", url=invite_cache["url"])]]) if invite_cache["url"] else None
+    
     if bot_config.get('bin_channel'):
-        try: 
-            await copy_raw_api_message(bot_config['bin_channel'], message.chat.id, message.id, caption=new_caption, buttons=btn_markup)
-        except Exception as e: 
-            logger.error(f"Failed to copy media to bin channel {bot_config['bin_channel']}: {str(e)}", exc_info=True)
-            
+        try: await message.copy(bot_config['bin_channel'], caption=new_caption, reply_markup=btn_markup)
+        except: pass
+        
     mid = message.media_group_id
     if mid:
         if mid not in config.album_cache:
@@ -99,34 +111,30 @@ async def handle_media(client, message):
                 await asyncio.sleep(7)
                 messages = config.album_cache.pop(mid, None)
                 if messages:
-                    await config.media_queue.put({'sender_id': user_id, 'messages': messages, 'markup': btn_markup})
+                    await config.media_queue.put({'sender_id': user_id, 'messages': messages, 'invite_url': invite_cache["url"]})
                     await db.update_activity(user_id)
-                    try: 
-                        await client.send_message(user_id, "> ✅ <b>Media album processed successfully</b>\n> \n> Your time has been extended by 30 minutes.")
-                    except Exception as e: 
-                        logger.error(f"Failed to notify user {user_id} of album success: {str(e)}", exc_info=True)
+                    await aio_reply(user_id, "> ✅ <b>Media Album Processed Successfully!</b>\n> Your time has been extended by 30 minutes.")
             asyncio.create_task(collect())
         config.album_cache[mid].append(message)
     else:
-        setattr(message, 'generated_markup', btn_markup)
-        await config.media_queue.put({'sender_id': user_id, 'messages': [message], 'markup': btn_markup})
+        await config.media_queue.put({'sender_id': user_id, 'messages': [message], 'invite_url': invite_cache["url"]})
         await db.update_activity(user_id)
-        await message.reply("> ✅ <b>Media processed successfully</b>\n> \n> Your time has been extended by 30 minutes.")
+        await aio_reply(user_id, "> ✅ <b>Media Processed Successfully!</b>\n> Your time has been extended by 30 minutes.")
 
-# FIXED: Added filters.incoming here as well for consistency
-@Client.on_message(filters.text & filters.private & filters.regex("^(GET MEDIA HISTORY)$") & filters.incoming)
+@Client.on_message(filters.text & filters.private & filters.regex("^(GET MEDIA HISTORY)$"))
 async def reply_keyboard_handler(client, message):
     user_id = message.from_user.id
+    is_admin = user_id in config.Config.ADMIN_IDS
     now = time.time()
     
-    if user_id in history_cooldowns:
+    if user_id in history_cooldowns and not is_admin:
         elapsed_time = now - history_cooldowns[user_id]
         if elapsed_time < 180:
             remaining = int(180 - elapsed_time)
             mins = remaining // 60
             secs = remaining % 60
             time_str = f"{mins}m {secs}s" if mins > 0 else f"{secs}s"
-            return await message.reply(f"> ⏳ <b>Anti-spam protocol active</b>\n> \n> Please wait <b>{time_str}</b> before requesting media history again.")
+            return await aio_reply(user_id, f"> ⏳ <b>Anti-Spam Protocol Active!</b>\n> \n> Please wait <b>{time_str}</b> before requesting media history again.")
             
     user = await db.get_user(user_id)
     if not user: return
@@ -134,128 +142,98 @@ async def reply_keyboard_handler(client, message):
     bot_config = await db.get_bot_settings()
     if bot_config.get('get_btn_enabled'):
         history = await db.get_random_media_history(10)
-        if not history: 
-            return await message.reply("> 📭 <b>Empty archive</b>\n> \n> There is currently no media history available.")
-            
+        if not history: return await aio_reply(user_id, "> 📭 History me abhi koi video/photo nahi hai!")
+        
         history_cooldowns[user_id] = now
-        status_msg = await message.reply("> 🚀 <b>Fetching media history</b>\n> \n> <i>Please wait while data is retrieved...</i>")
+        await aio_reply(user_id, "> 🚀 Fetching media history...")
         protect = bot_config.get('media_restriction', False) and not user.get('is_premium', False)
         
         global invite_cache
         if invite_cache["count"] >= 10 or not invite_cache["url"]:
             try:
                 if config.Config.FORCE_SUB_CHANNEL:
-                    fsub_id = int(config.Config.FORCE_SUB_CHANNEL) if str(config.Config.FORCE_SUB_CHANNEL).lstrip('-').isdigit() else config.Config.FORCE_SUB_CHANNEL
-                    link = await client.create_chat_invite_link(chat_id=fsub_id, member_limit=10)
+                    link = await client.create_chat_invite_link(chat_id=config.Config.FORCE_SUB_CHANNEL, member_limit=10)
                     invite_cache["url"] = link.invite_link
                     invite_cache["count"] = 0
-            except Exception as e: 
-                logger.error(f"Failed to generate invite link for history: {str(e)}", exc_info=True)
-                
+            except Exception: pass
         invite_cache["count"] += 1
         
-        btn_markup = None
-        if invite_cache["url"]: 
-            btn_markup = [[{"text": "Join Network", "url": invite_cache["url"], "style": "primary"}]]
         bot_info = client.me
-        
         try:
             if config.Config.FORCE_SUB_CHANNEL:
-                fsub_id = int(config.Config.FORCE_SUB_CHANNEL) if str(config.Config.FORCE_SUB_CHANNEL).lstrip('-').isdigit() else config.Config.FORCE_SUB_CHANNEL
-                chat_info = await client.get_chat(fsub_id)
+                chat_info = await client.get_chat(config.Config.FORCE_SUB_CHANNEL)
                 ch_name = chat_info.title
-            else: ch_name = "Elite Private Vault"
-        except Exception: 
-            ch_name = "Elite Private Vault"
-            
+            else: ch_name = "𝔼𝕃𝕀𝕋𝔼 ℙℝ𝕀𝕍𝔸𝕋𝔼 𝕍𝔸𝕌𝕃𝕋"
+        except: ch_name = "𝔼𝕃𝕀𝕋𝔼 ℙℝ𝕀𝕍𝔸𝕋𝔼 𝕍𝔸𝕌𝕃𝕋"
+        
         for item in history:
             try:
                 stored_cap = item.get('caption', "")
                 f_num = item.get('file_number', 'N/A')
-                
                 new_cap = stored_cap if stored_cap else (
-                    f"> 📁 <b>File:</b> #{f_num}\n"
-                    f"> 📢 <b>Network:</b> {ch_name}\n"
-                    f"> 🤖 <b>Bot:</b> @{bot_info.username}"
+                    f"📁 <b>𝔽𝕀𝕃𝔼:</b> #{f_num}\n📢 <b>ℕ𝔼𝕋𝕎𝕆ℝ𝕂:</b> {ch_name}\n🤖 <b>𝔹𝕆𝕋:</b> @{bot_info.username}"
                 )
                 
-                if item['type'] == "photo": 
-                    await send_raw_api_media(message.from_user.id, item['file_id'], "photo", caption=new_cap, buttons=btn_markup, protect_content=protect)
-                else: 
-                    await send_raw_api_media(message.from_user.id, item['file_id'], "video", caption=new_cap, buttons=btn_markup, protect_content=protect)
-                    
-                await asyncio.sleep(0.5)
-            except Exception as e: 
-                logger.error(f"Failed to send history item {item.get('file_id')} to {message.from_user.id}: {str(e)}", exc_info=True)
+                match = re.search(r"#(.*?)(\n|$)", new_cap)
+                report_nick = match.group(1).strip() if match else "Unknown"
                 
-        await status_msg.delete()
+                raw_markup = create_action_buttons(invite_cache["url"], report_nick)
+                await send_styled_media(user_id, item['type'], item['file_id'], new_cap, protect, raw_markup)
+                await asyncio.sleep(0.5)
+            except Exception as e:
+                logging.getLogger("MAIN").error(f"Error fetching history media: {e}", exc_info=True)
 
-@Client.on_callback_query()
+@Client.on_callback_query(~filters.regex(r"^report_"))
 async def cb_handler(client, query: CallbackQuery):
     user = await db.get_user(query.from_user.id)
     bot_config = await db.get_bot_settings()
     try:
         if query.data == "show_rules":
             rules_text = (
-                "> 📜 <b>Bot rules & guidelines</b>\n"
-                "> \n"
-                "> Share high-quality content you would love to receive. Keep the media flowing.\n"
-                "> \n"
-                "> ⚠️ <b>Strictly prohibited:</b>\n"
-                "> • No offensive language or harassment\n"
-                "> • No pedophilia or child abuse material (CP)\n"
-                "> • No scamming or unauthorized promotions\n"
-                "> • No obscene behavior or incest\n"
-                "> • No animal pornography\n"
-                "> • No unsolicited pictures of genitalia\n"
-                "> \n"
-                "> 🚨 <b>Penalty for violation: Permanent ban.</b>"
+                "📜 <b>𝔹𝕆𝕋 ℝ𝕌𝕃𝔼𝕊 & 𝔾𝕌𝕀𝔻𝔼𝕃𝕀ℕ𝔼𝕊</b>\n\n"
+                "Share high-quality content you would love to receive. Keep the media flowing.\n\n"
+                "⚠️ <b>𝕊𝕋ℝ𝕀ℂ𝕋𝕃𝕐 ℙℝ𝕆ℍ𝕀𝔹𝕀𝕋𝔼𝔻:</b>\n"
+                "• No offensive language or harassment\n"
+                "• No pedophilia or child abuse material (CP)\n"
+                "• No scamming or unauthorized promotions\n"
+                "• No obscene behavior or incest\n"
+                "• No animal pornography\n"
+                "• No unsolicited pictures of genitalia\n\n"
+                "🚨 <b>ℙ𝔼ℕ𝔸𝕃𝕋𝕐 𝔽𝕆ℝ 𝕍𝕀𝕆𝕃𝔸𝕋𝕀𝕆ℕ: ℙ𝔼ℝ𝕄𝔸ℕ𝔼ℕ𝕋 𝔹𝔸ℕ.</b>"
             )
-            await edit_raw_api_message(query.message.chat.id, query.message.id, rules_text, buttons=back_keyboard())
+            await query.message.edit_text(rules_text, reply_markup=back_keyboard())
         elif query.data == "show_status":
-            if user.get('is_premium'): 
-                text = "> ⏳ <b>Account time remaining</b>\n> \n> Unlimited VIP Status is currently active."
-            else: 
-                text = f"> ⏳ <b>Account time remaining</b>\n> \n> Remaining: {get_time_left(user['active_until'])}\n> \n> <i>Send media files to replenish your active time!</i>"
-            await edit_raw_api_message(query.message.chat.id, query.message.id, text, buttons=back_keyboard())
+            if user.get('is_premium'): text = "⏳ <b>𝔸ℂℂ𝕆𝕌ℕ𝕋 𝕋𝕀𝕄𝔼 ℝ𝔼𝕄𝔸𝕀ℕ𝕀ℕ𝔾:</b> Unlimited VIP Status"
+            else: text = f"⏳ <b>𝔸ℂℂ𝕆𝕌ℕ𝕋 𝕋𝕀𝕄𝔼 ℝ𝔼𝕄𝔸𝕀ℕ𝕀ℕ𝔾:</b> {get_time_left(user['active_until'])}\n\n<i>Send media files to replenish your active time!</i>"
+            await query.message.edit_text(text, reply_markup=back_keyboard())
         elif query.data in ["back_start", "refresh_start"]:
-            time_val = "Unlimited VIP" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now()))
-            status_val = "VIP Premium" if user.get('is_premium') else "Standard Free"
+            time_val = "𝕌ℕ𝕃𝕀𝕄𝕀𝕋𝔼𝔻" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now())).upper()
+            status_val = "𝕍𝕀ℙ ℙℝ𝔼𝕄𝕀𝕌𝕄" if user.get('is_premium') else "𝕊𝕋𝔸ℕ𝔻𝔸ℝ𝔻 𝔽ℝ𝔼𝔼"
             bot_info = client.me
             welcome_msg = (
-                f"> 🔥 <b>Welcome to the elite network</b>\n"
-                f"> \n"
-                f"> Greetings, #{user['nickname'].upper()}! We are glad to have you here.\n"
-                f"> \n"
-                f"> 🤖 <b>Bot identity:</b> @{bot_info.username.upper()}\n"
-                f"> ⚡ <b>System vibe:</b> Fast, secure, and advanced.\n"
-                f"> \n"
-                f"> ⏳ <b>Account time remaining:</b> {time_val}\n"
-                f"> 💎 <b>Current status:</b> {status_val}\n"
-                f"> \n"
-                f"> 📩 <b>Join now:</b> <a href='https://t.me/roomjoinus'>@roomjoinus</a>"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "🔥 𝕎𝔼𝕃ℂ𝕆𝕄𝔼 𝕋𝕆 𝕋ℍ𝔼 𝔼𝕃𝕀𝕋𝔼 ℕ𝔼𝕋𝕎𝕆ℝ𝕂 🔥\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                f"𝔾ℝ𝔼𝔼𝕋𝕀ℕ𝔾𝕊, #{user['nickname'].upper()}! 𝕎𝔼 𝔸ℝ𝔼 𝔾𝕃𝔸𝔻 𝕋𝕆 ℍ𝔸𝕍𝔼 𝕐𝕆𝕌 ℍ𝔼ℝ𝔼.\n\n"
+                f"🤖 𝔹𝕆𝕋 𝕀𝔻𝔼ℕ𝕋𝕀𝕋𝕐: @{bot_info.username.upper()}\n"
+                "⚡ 𝕊𝕐𝕊𝕋𝔼𝕄 𝕍𝕀𝔹𝔼: 𝔽𝔸𝕊𝕋, 𝕊𝔼ℂ𝕌ℝ𝔼, 𝔸ℕ𝔻 𝔸𝔻𝕍𝔸ℕℂ𝔼𝔻.\n\n"
+                f"⏳ 𝔸ℂℂ𝕆𝕌ℕ𝕋 𝕋𝕀𝕄𝔼 ℝ𝔼𝕄𝔸𝕀ℕ𝕀ℕ𝔾: {time_val}\n"
+                f"💎 ℂ𝕌ℝℝ𝔼ℕ𝕋 𝕊𝕋𝔸𝕋𝕌𝕊: {status_val}\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "📩 𝕁𝕆𝕀ℕ ℕ𝕆𝕎: <a href='https://t.me/roomjoinus'>@roomjoinus</a>"
             )
-            await edit_raw_api_message(query.message.chat.id, query.message.id, welcome_msg, buttons=start_keyboard(bot_config.get('ref_system'), bot_config.get('tutorial_link')))
+            await query.message.edit_text(welcome_msg, reply_markup=start_keyboard(bot_config.get('ref_system'), bot_config.get('tutorial_link')), disable_web_page_preview=True)
         elif query.data in ["show_referral", "refresh_ref"]:
             bot_info = client.me
             ref_link = f"https://t.me/{bot_info.username}?start=ref_{user['user_id']}"
             text = (
-                f"> 👥 <b>Referral network</b>\n"
-                f"> \n"
-                f"> {bot_config.get('ref_text', '')}\n"
-                f"> \n"
-                f"> 🔗 <b>Your exclusive link:</b>\n"
-                f"> <code>{ref_link}</code>\n"
-                f"> \n"
-                f"> 🪙 <b>Points accumulated:</b> {user['ref_balance']}/{bot_config['ref_count']}"
+                f"👥 <b>ℝ𝔼𝔽𝔼ℝℝ𝔸𝕃 ℕ𝔼𝕋𝕎𝕆ℝ𝕂</b>\n\n"
+                f"{bot_config.get('ref_text', '')}\n\n"
+                f"🔗 <b>𝕐𝕆𝕌ℝ 𝔼𝕏ℂ𝕃𝕌𝕊𝕀𝕍𝔼 𝕃𝕀ℕ𝕂:</b>\n<code>{ref_link}</code>\n\n"
+                f"🪙 <b>ℙ𝕆𝕀ℕ𝕋𝕊 𝔸ℂℂ𝕌𝕄𝕌𝕃𝔸𝕋𝔼𝔻:</b> {user['ref_balance']}/{bot_config['ref_count']}"
             )
-            await edit_raw_api_message(query.message.chat.id, query.message.id, text, buttons=ref_keyboard())
-    except MessageNotModified: 
-        pass
-    except Exception as e: 
-        logger.error(f"Callback query processing failed: {str(e)}", exc_info=True)
-        
-    try: 
-        await query.answer()
-    except Exception as e: 
-        logger.error(f"Failed to answer callback query: {str(e)}", exc_info=True)
+            await query.message.edit_text(text, reply_markup=ref_keyboard(), disable_web_page_preview=True)
+    except MessageNotModified: pass
+    except Exception: pass
+    try: await query.answer()
+    except: pass
