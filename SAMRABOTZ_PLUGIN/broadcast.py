@@ -1,18 +1,41 @@
 import asyncio
 import logging
+import aiohttp
 from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import InputMediaPhoto, InputMediaVideo
 from pyrogram.errors import FloodWait, UserIsBlocked
 import config
 from database import db
-from utils import copy_raw_api_message
 
-logger = logging.getLogger("BROADCAST")
+async def aio_copy_message(chat_id, from_chat_id, message_id, caption, protect_content, reply_markup):
+    url = f"https://api.telegram.org/bot{config.Config.BOT_TOKEN}/copyMessage"
+    payload = {
+        "chat_id": chat_id,
+        "from_chat_id": from_chat_id,
+        "message_id": message_id,
+        "caption": caption,
+        "parse_mode": "HTML",
+        "protect_content": protect_content
+    }
+    if reply_markup: payload["reply_markup"] = reply_markup
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=payload) as resp:
+            if resp.status == 429:
+                r = await resp.json()
+                await asyncio.sleep(r.get("parameters", {}).get("retry_after", 3))
+                return await aio_copy_message(chat_id, from_chat_id, message_id, caption, protect_content, reply_markup)
+            if resp.status != 200:
+                logging.getLogger("MAIN").error(f"Broadcast Copy Error: {await resp.text()}")
+            return await resp.json()
 
-class MockMessage:
-    def __init__(self, msg_id):
-        self.id = msg_id
+def create_action_buttons(invite_url, report_nick):
+    keys = []
+    if invite_url:
+        keys.append([{"text": "𝕁𝕆𝕀ℕ ℕ𝔼𝕋𝕎𝕆ℝ𝕂", "url": invite_url, "style": "primary"}])
+    if report_nick:
+        keys.append([{"text": "🚨 ℝ𝔼ℙ𝕆ℝ𝕋", "callback_data": f"report_{report_nick}", "style": "danger"}])
+    return {"inline_keyboard": keys} if keys else None
 
 async def broadcast_worker(bot: Client):
     while True:
@@ -23,18 +46,16 @@ async def broadcast_worker(bot: Client):
         data = await config.media_queue.get()
         sender_id = data['sender_id']
         messages = data['messages']
-        btn_markup = data.get('markup')
+        invite_url = data.get('invite_url')
         
         user_info = await db.get_user(sender_id)
-        
         if not user_info:
-            logger.warning(f"Sender {sender_id} not found in database during broadcast.")
             config.media_queue.task_done()
             continue
             
+        raw_markup = create_action_buttons(invite_url, user_info['nickname'])
         bot_config = await db.get_bot_settings()
         is_restricted = bot_config.get('media_restriction', False)
-        
         caption_text = messages[0].caption if messages[0].caption else ""
         
         active_users = await db.get_active_users()
@@ -46,47 +67,33 @@ async def broadcast_worker(bot: Client):
             while True:
                 try:
                     protect = is_restricted and not target.get('is_premium', False)
+                    sent_ids = []
                     if len(messages) > 1:
                         media_list = []
                         for idx, m in enumerate(messages):
                             cap = caption_text if idx == 0 else ""
                             if m.photo: media_list.append(InputMediaPhoto(m.photo.file_id, caption=cap))
                             elif m.video: media_list.append(InputMediaVideo(m.video.file_id, caption=cap))
-                        if media_list: sent = await bot.send_media_group(target['user_id'], media_list, protect_content=protect)
+                        if media_list: 
+                            sent = await bot.send_media_group(target['user_id'], media_list, protect_content=protect)
+                            sent_ids = [m.id for m in sent]
                     else:
-                        resp = await copy_raw_api_message(target['user_id'], sender_id, messages[0].id, caption=caption_text, buttons=btn_markup, protect_content=protect)
-                        if resp and resp.get("ok"):
-                            sent = [MockMessage(resp['result']['message_id'])]
-                        else:
-                            if resp:
-                                err_code = resp.get("error_code")
-                                if err_code == 429:
-                                    raise FloodWait(value=resp.get("parameters", {}).get("retry_after", 3))
-                                elif err_code == 403:
-                                    raise UserIsBlocked()
-                            sent = []
+                        resp = await aio_copy_message(target['user_id'], sender_id, messages[0].id, caption_text, protect, raw_markup)
+                        if resp and resp.get("ok"): sent_ids = [resp["result"]["message_id"]]
                         
-                    if bot_config['pm_dlt'] and sent:
+                    if bot_config['pm_dlt'] and sent_ids:
                         async def dlt(cid, mids):
                             await asyncio.sleep(bot_config['dlt_time'])
                             try: await bot.delete_messages(cid, mids)
-                            except Exception as e: logger.error(f"Failed to delete messages for {cid}: {str(e)}", exc_info=True)
-                        asyncio.create_task(dlt(target['user_id'], [m.id for m in sent]))
+                            except: pass
+                        asyncio.create_task(dlt(target['user_id'], sent_ids))
                         
                     await asyncio.sleep(0.05)
                     break
-                except FloodWait as e:
-                    logger.warning(f"FloodWait of {e.value}s encountered while broadcasting to {target['user_id']} from {sender_id}. Reason: Rapid requests.")
-                    try:
-                        await bot.send_message(sender_id, f"> ⚠️ <b>Network delay active</b>\n> \n> Your broadcast is experiencing a rate limit delay.\n> <i>Approximate wait time: {e.value} seconds.</i>")
-                    except Exception:
-                        pass
-                    await asyncio.sleep(e.value + 3)
-                except UserIsBlocked: 
-                    await db.remove_user(target['user_id'])
-                    break
+                except FloodWait as e: await asyncio.sleep(e.value + 3)
+                except UserIsBlocked: await db.remove_user(target['user_id']); break
                 except Exception as e: 
-                    logger.error(f"Unexpected error broadcasting to {target['user_id']}: {str(e)}", exc_info=True)
+                    logging.getLogger("MAIN").error(f"Broadcast task error: {e}")
                     break
                 
         if len(messages) == 1: await asyncio.sleep(2)
@@ -97,10 +104,10 @@ async def broadcast_worker(bot: Client):
 async def broadcast_cmd(client, message):
     try:
         if not message.reply_to_message:
-            return await message.reply("> 📢 <b>Instruction</b>\n> \n> Reply to a message or media to broadcast globally.")
+            return await message.reply("📢 <b>Instruction:</b> Reply to a message or media to broadcast globally.")
             
         b_msg = message.reply_to_message
-        status_msg = await message.reply("> ⏳ <b>Broadcasting in progress</b>\n> \n> <i>Please wait while the data stream is injected.</i>")
+        status_msg = await message.reply("⏳ <b>Broadcasting...</b>")
         sent = failed = deleted = 0
         all_users = await db.get_all_users()
         
@@ -108,22 +115,11 @@ async def broadcast_cmd(client, message):
             while True:
                 try:
                     await b_msg.copy(u['user_id'])
-                    sent += 1
-                    break
-                except FloodWait as e: 
-                    logger.warning(f"FloodWait of {e.value}s during global broadcast to {u['user_id']}.")
-                    await asyncio.sleep(e.value + 3)
-                except UserIsBlocked: 
-                    await db.remove_user(u['user_id'])
-                    deleted += 1
-                    break
-                except Exception as e: 
-                    logger.error(f"Broadcast failed for {u['user_id']}: {str(e)}", exc_info=True)
-                    failed += 1
-                    break
+                    sent += 1; break
+                except FloodWait as e: await asyncio.sleep(e.value + 3)
+                except UserIsBlocked: await db.remove_user(u['user_id']); deleted += 1; break
+                except Exception: failed += 1; break
             await asyncio.sleep(0.05)
             
-        await status_msg.edit_text(f"> 🏁 <b>Broadcast complete</b>\n> \n> 🟢 Success: {sent}\n> 🔴 Failed: {failed}\n> 🗑️ Deleted: {deleted}")
-    except Exception as e: 
-        logger.error(f"Global broadcast command failed: {str(e)}", exc_info=True)
-        await message.reply(f"> ❌ <b>System fault</b>\n> \n> An error occurred: {e}")
+        await status_msg.edit_text(f"🏁 <b>Done!</b>\n\n🟢 Success: {sent}\n🔴 Failed: {failed}\n🗑️ Deleted: {deleted}")
+    except Exception as e: await message.reply(f"❌ <b>Fault:</b> {e}")
