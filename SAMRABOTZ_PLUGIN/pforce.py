@@ -21,7 +21,16 @@ async def handle_join_request(client, message):
         await db.add_user(user_id, random_name)
     await db.add_requested_channel(user_id, chat_id)
     try: 
-        await client.send_message(user_id, "> ✅ <b>Join request registered</b>\n> \n> You now have access. Please type /start to continue.")
+        await client.send_message(
+            user_id, 
+            "<blockquote>"
+            "✅ <b>Join request registered</b>
+"
+            "
+"
+            "You now have access. Please type /start to continue."
+            "</blockquote>"
+        )
     except Exception as e: 
         logger.error(f"Failed to notify user {user_id} of join request approval: {str(e)}", exc_info=True)
 
@@ -31,22 +40,22 @@ async def check_fsub(client, user_id):
     missing_channels = []
     error_status = None
     target_channels = []
-    
+
     if config.Config.FORCE_SUB_CHANNEL:
         target_channels.append(config.Config.FORCE_SUB_CHANNEL)
     if config.Config.PENDING_RQUST_CHNL_ID:
         raw_ids = re.split(r'[,\s]+', config.Config.PENDING_RQUST_CHNL_ID.strip())
         for rid in raw_ids:
             if rid: target_channels.append(rid.strip())
-            
+
     for x in target_channels:
         chat_id = x
         if isinstance(chat_id, str):
             if chat_id.startswith("-100") and chat_id.replace("-", "").isdigit(): chat_id = int(chat_id)
             elif not chat_id.startswith("@") and not chat_id.lstrip("-").isdigit(): chat_id = f"@{chat_id}"
-            
+
         if chat_id in requested_channels: continue
-        
+
         try:
             member = await client.get_chat_member(chat_id, user_id)
             if member.status not in [enums.ChatMemberStatus.MEMBER, enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]: 
@@ -67,7 +76,7 @@ async def check_fsub(client, user_id):
                 error_status = "not_admin"
             else:
                 logger.error(f"Error checking sub status for {user_id} in {chat_id}: {str(e)}", exc_info=True)
-            
+
     if error_status: return False, "not_admin"
     if missing_channels: return False, missing_channels
     return True, None
