@@ -2,7 +2,7 @@ import asyncio
 import logging
 from datetime import datetime
 import pyrogram.utils
-from pyrogram import Client, enums
+from pyrogram import Client, enums, idle
 from pyrogram.types import BotCommand
 from pyrogram.errors import UserIsBlocked
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -58,12 +58,19 @@ async def run_2h_reminders():
     try:
         inactive_users = await db.get_users_to_remind()
         reminder_text = (
-            "> ⚠️ <b>Attention: Your time has expired</b>\n"
-            "> \n"
-            "> Please send any media to extend your access.\n"
-            "> Each video or image sent grants you an additional <b>30 minutes</b>.\n"
-            "> \n"
-            "> <i>Your access will be restored immediately upon sending media.</i>"
+            "<blockquote>"
+            "⚠️ <b>Attention: Your time has expired</b>
+"
+            "
+"
+            "Please send any media to extend your access.
+"
+            "Each video or image sent grants you an additional <b>30 minutes</b>.
+"
+            "
+"
+            "<i>Your access will be restored immediately upon sending media.</i>"
+            "</blockquote>"
         )
         for u in inactive_users:
             try:
@@ -86,23 +93,27 @@ async def expiry_check():
 
 async def main():
     config.media_queue = asyncio.Queue()
-    
+
     await start_web_server()
     asyncio.create_task(ping_server())
-    
+
     await bot.start()
     restart_text = (
-        "> ✅ <b>System restart successful</b>\n"
-        "> \n"
-        "> <i>All neural networks are online and operational.</i>"
+        "<blockquote>"
+        "✅ <b>System restart successful</b>
+"
+        "
+"
+        "<i>All neural networks are online and operational.</i>"
+        "</blockquote>"
     )
-    
+
     for admin_id in config.Config.ADMIN_IDS:
         try:
             await bot.send_message(chat_id=admin_id, text=restart_text)
         except Exception as e:
             logger.error(f"Failed to alert Admin {admin_id}: {str(e)}", exc_info=True)
-            
+
     try:
         await bot.set_bot_commands([
             BotCommand("start", "🚀 DASHBOARD & STATUS"),
@@ -129,16 +140,16 @@ async def main():
         ])
     except Exception as e:
         logger.error(f"Failed to set bot commands: {str(e)}", exc_info=True)
-    
+
     asyncio.create_task(broadcast_worker(bot))
-    
+
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_2h_reminders, "interval", minutes=15)
     scheduler.add_job(expiry_check, "interval", minutes=5)
     scheduler.start()
-    
+
     logger.info("Bot Initialization Complete. UI & Systems Online.")
-    await pyrogram.idle()
+    await idle()
     await bot.stop()
 
 if __name__ == "__main__":
