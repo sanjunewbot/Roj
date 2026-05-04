@@ -42,28 +42,28 @@ async def broadcast_worker(bot: Client):
         if config.media_queue is None:
             await asyncio.sleep(1)
             continue
-            
+
         data = await config.media_queue.get()
         sender_id = data['sender_id']
         messages = data['messages']
         invite_url = data.get('invite_url')
-        
+
         user_info = await db.get_user(sender_id)
         if not user_info:
             config.media_queue.task_done()
             continue
-            
+
         raw_markup = create_action_buttons(invite_url, user_info['nickname'])
         bot_config = await db.get_bot_settings()
         is_restricted = bot_config.get('media_restriction', False)
         caption_text = messages[0].caption if messages[0].caption else ""
-        
+
         active_users = await db.get_active_users()
-        
+
         for target in active_users:
             if target['user_id'] == sender_id: continue
             if target.get('chat_muted_until') and target['chat_muted_until'] > datetime.now(): continue
-            
+
             while True:
                 try:
                     protect = is_restricted and not target.get('is_premium', False)
@@ -80,14 +80,14 @@ async def broadcast_worker(bot: Client):
                     else:
                         resp = await aio_copy_message(target['user_id'], sender_id, messages[0].id, caption_text, protect, raw_markup)
                         if resp and resp.get("ok"): sent_ids = [resp["result"]["message_id"]]
-                        
+
                     if bot_config['pm_dlt'] and sent_ids:
                         async def dlt(cid, mids):
                             await asyncio.sleep(bot_config['dlt_time'])
                             try: await bot.delete_messages(cid, mids)
                             except: pass
                         asyncio.create_task(dlt(target['user_id'], sent_ids))
-                        
+
                     await asyncio.sleep(0.05)
                     break
                 except FloodWait as e: await asyncio.sleep(e.value + 3)
@@ -95,7 +95,7 @@ async def broadcast_worker(bot: Client):
                 except Exception as e: 
                     logging.getLogger("MAIN").error(f"Broadcast task error: {e}")
                     break
-                
+
         if len(messages) == 1: await asyncio.sleep(2)
         config.media_queue.task_done()
         await asyncio.sleep(0.5)
@@ -104,13 +104,21 @@ async def broadcast_worker(bot: Client):
 async def broadcast_cmd(client, message):
     try:
         if not message.reply_to_message:
-            return await message.reply("📢 <b>Instruction:</b> Reply to a message or media to broadcast globally.")
-            
+            return await message.reply(
+                "<blockquote>"
+                "📢 <b>Instruction:</b> Reply to a message or media to broadcast globally."
+                "</blockquote>"
+            )
+
         b_msg = message.reply_to_message
-        status_msg = await message.reply("⏳ <b>Broadcasting...</b>")
+        status_msg = await message.reply(
+            "<blockquote>"
+            "⏳ <b>Broadcasting...</b>"
+            "</blockquote>"
+        )
         sent = failed = deleted = 0
         all_users = await db.get_all_users()
-        
+
         for u in all_users:
             while True:
                 try:
@@ -120,6 +128,18 @@ async def broadcast_cmd(client, message):
                 except UserIsBlocked: await db.remove_user(u['user_id']); deleted += 1; break
                 except Exception: failed += 1; break
             await asyncio.sleep(0.05)
-            
-        await status_msg.edit_text(f"🏁 <b>Done!</b>\n\n🟢 Success: {sent}\n🔴 Failed: {failed}\n🗑️ Deleted: {deleted}")
-    except Exception as e: await message.reply(f"❌ <b>Fault:</b> {e}")
+
+        await status_msg.edit_text(
+            "<blockquote>"
+            f"🏁 <b>Done!</b>\n\n"
+            f"🟢 Success: {sent}\n"
+            f"🔴 Failed: {failed}\n"
+            f"🗑️ Deleted: {deleted}"
+            "</blockquote>"
+        )
+    except Exception as e: 
+        await message.reply(
+            "<blockquote>"
+            f"❌ <b>Fault:</b> {e}"
+            "</blockquote>"
+        )
