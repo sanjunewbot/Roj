@@ -105,7 +105,7 @@ class db:
         current_active = user.get("active_until", now)
         if current_active < now:
             current_active = now
-            
+
         new_expiry = min(current_active + timedelta(minutes=30), now + timedelta(hours=24))
         await users.update_one({"user_id": user_id}, {"$set": {"active_until": new_expiry}, "$inc": {"total_sent": 1}})
 
