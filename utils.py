@@ -39,7 +39,7 @@ async def send_raw_api_message(chat_id, text, buttons=None, reply_markup=None):
         payload["reply_markup"] = {"inline_keyboard": buttons}
     elif reply_markup:
          payload["reply_markup"] = reply_markup
-         
+
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(url, json=payload) as response:
@@ -61,7 +61,7 @@ async def edit_raw_api_message(chat_id, message_id, text, buttons=None):
     }
     if buttons:
         payload["reply_markup"] = {"inline_keyboard": buttons}
-        
+
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(url, json=payload) as response:
@@ -85,7 +85,7 @@ async def copy_raw_api_message(chat_id, from_chat_id, message_id, caption=None, 
         payload["caption"] = caption
     if buttons:
         payload["reply_markup"] = {"inline_keyboard": buttons}
-        
+
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(url, json=payload) as response:
@@ -109,7 +109,7 @@ async def send_raw_api_media(chat_id, media_id, media_type, caption=None, button
         payload["caption"] = caption
     if buttons:
         payload["reply_markup"] = {"inline_keyboard": buttons}
-        
+
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(url, json=payload) as response:
