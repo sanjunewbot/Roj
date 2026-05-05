@@ -12,10 +12,8 @@ async def referral_cmd(client, message):
     if not bot_config.get('ref_system'): 
         return await message.reply(
             "<blockquote>"
-            "❌ <b>System alert</b>
-"
-            "
-"
+            "❌ <b>System alert</b>\n"
+            "\n"
             "Referral system is currently disabled."
             "</blockquote>"
         )
@@ -27,20 +25,13 @@ async def referral_cmd(client, message):
     ref_link = f"https://t.me/{bot_info.username}?start=ref_{message.from_user.id}"
     text = (
         "<blockquote>"
-        f"👥 <b>Referral network</b>
-"
-        f"
-"
-        f"{bot_config.get('ref_text', '')}
-"
-        f"
-"
-        f"🔗 <b>Your exclusive link:</b>
-"
-        f"<code>{ref_link}</code>
-"
-        f"
-"
+        f"👥 <b>Referral network</b>\n"
+        f"\n"
+        f"{bot_config.get('ref_text', '')}\n"
+        f"\n"
+        f"🔗 <b>Your exclusive link:</b>\n"
+        f"<code>{ref_link}</code>\n"
+        f"\n"
         f"🪙 <b>Points:</b> {user['ref_balance']}/{bot_config['ref_count']}"
         "</blockquote>"
     )
@@ -57,10 +48,8 @@ async def ref_cmd_init(client, message):
         if len(message.command) < 2: 
             return await message.reply(
                 "<blockquote>"
-                "⚙️ <b>Syntax error</b>
-"
-                "
-"
+                "⚙️ <b>Syntax error</b>\n"
+                "\n"
                 "Use format: <code>/ref on</code> or <code>/ref off</code>"
                 "</blockquote>"
             )
@@ -69,10 +58,8 @@ async def ref_cmd_init(client, message):
             await db.update_settings({"ref_system": False})
             return await message.reply(
                 "<blockquote>"
-                "✅ <b>Referral system offline</b>
-"
-                "
-"
+                "✅ <b>Referral system offline</b>\n"
+                "\n"
                 "Protocol successfully disabled."
                 "</blockquote>"
             )
@@ -80,10 +67,8 @@ async def ref_cmd_init(client, message):
         config.admin_states[message.from_user.id] = {"step": "ref_1"}
         await message.reply(
             "<blockquote>"
-            "🔢 <b>Initiating setup</b>
-"
-            "
-"
+            "🔢 <b>Initiating setup</b>\n"
+            "\n"
             "Enter the required number of referrals for a reward."
             "</blockquote>"
         )
@@ -91,10 +76,8 @@ async def ref_cmd_init(client, message):
         logger.error(f"Referral admin command failed: {str(e)}", exc_info=True)
         await message.reply(
             "<blockquote>"
-            f"❌ <b>System fault</b>
-"
-            "
-"
+            f"❌ <b>System fault</b>\n"
+            "\n"
             f"An error occurred: {e}"
             "</blockquote>"
         )
