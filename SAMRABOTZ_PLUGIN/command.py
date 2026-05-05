@@ -18,10 +18,8 @@ async def start_cmd(client, message):
     if not user and not bot_config.get('registration_open', True): 
         return await message.reply(
             "<blockquote>"
-            "🚫 <b>Registration locked</b>
-"
-            "
-"
+            "🚫 <b>Registration locked</b>\n"
+            "\n"
             "Registration is currently locked by administrators."
             "</blockquote>"
         )
@@ -36,10 +34,8 @@ async def start_cmd(client, message):
                     await client.send_message(
                         inviter_id, 
                         "<blockquote>"
-                        f"🎉 <b>New referral</b>
-"
-                        "
-"
+                        f"🎉 <b>New referral</b>\n"
+                        "\n"
                         f"Points accumulated: {inviter['ref_balance']}/{bot_config['ref_count']}"
                         "</blockquote>"
                     )
@@ -55,10 +51,8 @@ async def start_cmd(client, message):
                             await client.send_message(
                                 inviter_id, 
                                 "<blockquote>"
-                                "🎊 <b>VIP premium activated</b>
-"
-                                "
-"
+                                "🎊 <b>VIP premium activated</b>\n"
+                                "\n"
                                 "Your referral reward has been credited."
                                 "</blockquote>"
                             )
@@ -78,10 +72,8 @@ async def start_cmd(client, message):
             return await send_raw_api_message(
                 user_id, 
                 "<blockquote>"
-                "⚠️ <b>System error</b>
-"
-                "
-"
+                "⚠️ <b>System error</b>\n"
+                "\n"
                 "Bot is not an admin in the mandatory channel(s)."
                 "</blockquote>"
             )
@@ -91,14 +83,10 @@ async def start_cmd(client, message):
         return await send_raw_api_message(
             user_id, 
             "<blockquote>"
-            "❌ <b>Access denied</b>
-"
-            "
-"
-            "You must join or send join requests to all mandatory networks below.
-"
-            "
-"
+            "❌ <b>Access denied</b>\n"
+            "\n"
+            "You must join or send join requests to all mandatory networks below.\n"
+            "\n"
             "<i>Note: Once requested, come back and type /start</i>"
             "</blockquote>", 
             buttons=buttons
@@ -110,26 +98,16 @@ async def start_cmd(client, message):
 
     welcome_msg = (
         "<blockquote>"
-        f"🔥 <b>Welcome to the elite network</b>
-"
-        f"
-"
-        f"Greetings, #{user['nickname']}! We are glad to have you here.
-"
-        f"
-"
-        f"🤖 <b>Bot identity:</b> @{bot_info.username}
-"
-        f"⚡ <b>System vibe:</b> Fast, secure, and advanced.
-"
-        f"
-"
-        f"⏳ <b>Account time remaining:</b> {time_val}
-"
-        f"💎 <b>Current status:</b> {status_val}
-"
-        f"
-"
+        f"🔥 <b>Welcome to the elite network</b>\n"
+        f"\n"
+        f"Greetings, #{user['nickname']}! We are glad to have you here.\n"
+        f"\n"
+        f"🤖 <b>Bot identity:</b> @{bot_info.username}\n"
+        f"⚡ <b>System vibe:</b> Fast, secure, and advanced.\n"
+        f"\n"
+        f"⏳ <b>Account time remaining:</b> {time_val}\n"
+        f"💎 <b>Current status:</b> {status_val}\n"
+        f"\n"
         f"📩 <b>Join now:</b> <a href='https://t.me/roomjoinus'>@roomjoinus</a>"
         "</blockquote>"
     )
@@ -150,10 +128,8 @@ async def register_cmd(client, message):
     if len(message.command) < 2: 
         return await message.reply(
             "<blockquote>"
-            "📝 <b>Format instruction</b>
-"
-            "
-"
+            "📝 <b>Format instruction</b>\n"
+            "\n"
             "Use <code>/register [NewName]</code> to update your identity."
             "</blockquote>"
         )
@@ -169,10 +145,8 @@ async def register_cmd(client, message):
 
     await message.reply(
         "<blockquote>"
-        f"✅ <b>Identity updated</b>
-"
-        "
-"
+        f"✅ <b>Identity updated</b>\n"
+        "\n"
         f"Your anonymous identity has been updated to <b>{new_name}</b>."
         "</blockquote>"
     )
@@ -181,73 +155,44 @@ async def register_cmd(client, message):
 async def help_cmd(client, message):
     txt = (
         "<blockquote>"
-        "🛠 <b>Bot command directory</b>
-"
-        "
-"
-        "👤 <b>User commands</b>
-"
-        "✦ /start ➤ Dashboard & status
-"
-        "✦ /me ➤ Detailed profile stats
-"
-        "✦ /register [name] ➤ Update identity
-"
-        "✦ /referral ➤ Earn VIP access
-"
-        "✦ /plans ➤ View plans & benefits
-"
-        "✦ /help ➤ Open command menu
-"
-        "
-"
+        "🛠 <b>Bot command directory</b>\n"
+        "\n"
+        "👤 <b>User commands</b>\n"
+        "✦ /start ➤ Dashboard & status\n"
+        "✦ /me ➤ Detailed profile stats\n"
+        "✦ /register [name] ➤ Update identity\n"
+        "✦ /referral ➤ Earn VIP access\n"
+        "✦ /plans ➤ View plans & benefits\n"
+        "✦ /help ➤ Open command menu\n"
+        "\n"
         "</blockquote>"
     )
     if message.from_user.id in config.Config.ADMIN_IDS:
         txt += (
             "<blockquote>"
-            "👑 <b>Admin commands</b>
-"
-            "✦ /stats ➤ Live system diagnostics
-"
-            "✦ /add #name 30d ➤ Grant premium
-"
-            "✦ /rem_prem #name ➤ Remove premium
-"
-            "✦ /mute #name [days] [reason] ➤ Mute user
-"
-            "✦ /unmute #name ➤ Unmute user
-"
-            "✦ /ban #name [days] [reason] ➤ Ban user
-"
-            "✦ /unban #name ➤ Unban user
-"
-            "✦ /broadcast ➤ Global message (reply)
-"
-            "✦ /chat on/off ➤ Global chat toggle
-"
-            "✦ /restrict on/off ➤ Protection mode
-"
-            "✦ /binch [id] ➤ Set backup bin
-"
-            "✦ /wait on/off ➤ Registration lock
-"
-            "✦ /pmdlt on [secs] ➤ Auto purge setup
-"
-            "✦ /ref on/off ➤ Referral config
-"
-            "✦ /get_buttn on/off ➤ Media history
-"
-            "✦ /tutorial on/off ➤ Video guide
-"
-            "
-"
+            "👑 <b>Admin commands</b>\n"
+            "✦ /stats ➤ Live system diagnostics\n"
+            "✦ /add #name 30d ➤ Grant premium\n"
+            "✦ /rem_prem #name ➤ Remove premium\n"
+            "✦ /mute #name [days] [reason] ➤ Mute user\n"
+            "✦ /unmute #name ➤ Unmute user\n"
+            "✦ /ban #name [days] [reason] ➤ Ban user\n"
+            "✦ /unban #name ➤ Unban user\n"
+            "✦ /broadcast ➤ Global message (reply)\n"
+            "✦ /chat on/off ➤ Global chat toggle\n"
+            "✦ /restrict on/off ➤ Protection mode\n"
+            "✦ /binch [id] ➤ Set backup bin\n"
+            "✦ /wait on/off ➤ Registration lock\n"
+            "✦ /pmdlt on [secs] ➤ Auto purge setup\n"
+            "✦ /ref on/off ➤ Referral config\n"
+            "✦ /get_buttn on/off ➤ Media history\n"
+            "✦ /tutorial on/off ➤ Video guide\n"
+            "\n"
             "</blockquote>"
         )
     txt += (
         "<blockquote>"
-        "📩 <b>Join now:</b> <a href='https://t.me/roomjoinus'>@roomjoinus</a>
-"
+        "📩 <b>Join now:</b> <a href='https://t.me/roomjoinus'>@roomjoinus</a>\n"
         "🚀 <b>System:</b> Elite bot system • Fast • Secure • Advanced"
         "</blockquote>"
     )
