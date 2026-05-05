@@ -43,8 +43,7 @@ async def chat_handler(client, message):
         return await aio_reply(
             user_id, 
             "<blockquote>"
-            "⚠️ <b>Message limit exceeded!</b>
-"
+            "⚠️ <b>Message limit exceeded!</b>\n"
             "You can only send up to 100 characters (including spaces)."
             "</blockquote>", 
             message.id
@@ -58,8 +57,7 @@ async def chat_handler(client, message):
         return await aio_reply(
             user_id, 
             "<blockquote>"
-            "⏳ <b>Anti-Spam Active:</b>
-"
+            "⏳ <b>Anti-Spam Active:</b>\n"
             "You sent 3 messages too quickly. Please wait 30 seconds."
             "</blockquote>", 
             message.id
@@ -73,8 +71,7 @@ async def chat_handler(client, message):
             return await aio_reply(
                 user_id, 
                 "<blockquote>"
-                "💬 <b>Global chat is currently OFF.</b>
-"
+                "💬 <b>Global chat is currently OFF.</b>\n"
                 "The system is only accepting videos and photos."
                 "</blockquote>", 
                 message.id
@@ -83,8 +80,7 @@ async def chat_handler(client, message):
             await aio_reply(
                 user_id, 
                 "<blockquote>"
-                "💬 <b>System Alert:</b>
-"
+                "💬 <b>System Alert:</b>\n"
                 "Global chat is OFF. Regular users will receive a warning instead of their text being forwarded."
                 "</blockquote>", 
                 message.id
@@ -94,8 +90,7 @@ async def chat_handler(client, message):
         return await aio_reply(
             user_id, 
             "<blockquote>"
-            f"🔇 <b>ACCESS DENIED: You are currently muted.</b>
-"
+            f"🔇 <b>ACCESS DENIED: You are currently muted.</b>\n"
             f"Restriction lifts at: {user['chat_muted_until'].strftime('%H:%M %d/%m')}"
             "</blockquote>", 
             message.id
@@ -111,8 +106,7 @@ async def chat_handler(client, message):
             return await aio_reply(
                 user_id, 
                 "<blockquote>"
-                f"🚨 <b>SECURITY VIOLATION: UNAUTHORIZED LINK OR FORWARD DETECTED!</b>
-"
+                f"🚨 <b>SECURITY VIOLATION: UNAUTHORIZED LINK OR FORWARD DETECTED!</b>\n"
                 f"Your account has been temporarily muted for {config.Config.MUTE_PENALTY_MINUTES} minutes."
                 "</blockquote>", 
                 message.id
