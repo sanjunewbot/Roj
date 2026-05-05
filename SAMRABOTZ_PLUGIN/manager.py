@@ -30,10 +30,8 @@ async def handle_report(client, query):
     await aio_reply(
         user_id, 
         "<blockquote>"
-        f"🚨 <b>Report Workflow Activated for #{target_nick}</b>
-"
-        ">
-"
+        f"🚨 <b>Report Workflow Activated for #{target_nick}</b>\n"
+        ">\n"
         "📝 Please reply with the number of days to mute this user (e.g., <code>1</code> for 1 day)."
         "</blockquote>"
     )
@@ -45,18 +43,12 @@ async def stats_cmd(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"📈 <b>SYSTEM DIAGNOSTICS</b>
-"
-            f" ━━━━━━━━━━━━━━━━━━
-"
-            f" 👥 <b>Total Identities:</b> <code>{t}</code>
-"
-            f" 🟢 <b>Active Nodes:</b> <code>{a}</code>
-"
-            f" 🔴 <b>Banished Entities:</b> <code>{b}</code>
-"
-            f" ⏱ <b>Core Uptime:</b> <code>{get_uptime()}</code>
-"
+            f"📈 <b>SYSTEM DIAGNOSTICS</b>\n"
+            f" ━━━━━━━━━━━━━━━━━━\n"
+            f" 👥 <b>Total Identities:</b> <code>{t}</code>\n"
+            f" 🟢 <b>Active Nodes:</b> <code>{a}</code>\n"
+            f" 🔴 <b>Banished Entities:</b> <code>{b}</code>\n"
+            f" ⏱ <b>Core Uptime:</b> <code>{get_uptime()}</code>\n"
             f" ━━━━━━━━━━━━━━━━━━"
             "</blockquote>", 
             message.id
@@ -216,10 +208,8 @@ async def mute_cmd(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"🔇 <b>Target Silenced:</b> #{nick}
-"
-            f" ⏳ <b>Duration:</b> {days} Days
-"
+            f"🔇 <b>Target Silenced:</b> #{nick}\n"
+            f" ⏳ <b>Duration:</b> {days} Days\n"
             f" 📝 <b>Reason:</b> {reason}"
             "</blockquote>", 
             message.id
@@ -228,10 +218,8 @@ async def mute_cmd(client, message):
             await client.send_message(
                 u['user_id'], 
                 "<blockquote>"
-                f"🔇 <b>System Alert: You have been MUTED for {days} days.</b>
-"
-                f"📝 <b>Reason:</b> {reason}
-"
+                f"🔇 <b>System Alert: You have been MUTED for {days} days.</b>\n"
+                f"📝 <b>Reason:</b> {reason}\n"
                 f"<i>Transmitting and receiving media is disabled.</i>"
                 "</blockquote>"
             )
@@ -341,10 +329,8 @@ async def ban_cmd(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"🔨 <b>Target Banished:</b> #{nick}
-"
-            f" ⏳ <b>Duration:</b> {days} Days
-"
+            f"🔨 <b>Target Banished:</b> #{nick}\n"
+            f" ⏳ <b>Duration:</b> {days} Days\n"
             f" 📝 <b>Reason:</b> {reason}"
             "</blockquote>", 
             message.id
@@ -353,8 +339,7 @@ async def ban_cmd(client, message):
             await client.send_message(
                 u['user_id'], 
                 "<blockquote>"
-                f"🚨 <b>CRITICAL ALERT: Your network access has been permanently revoked for {days} days.</b>
-"
+                f"🚨 <b>CRITICAL ALERT: Your network access has been permanently revoked for {days} days.</b>\n"
                 f"📝 <b>Reason:</b> {reason}"
                 "</blockquote>"
             )
@@ -662,10 +647,8 @@ async def master_admin_state_handler(client, message):
             await aio_reply(
                 uid, 
                 "<blockquote>"
-                f"✅ <b>Target Silenced:</b> #{nick}
-"
-                f" ⏳ <b>Duration:</b> {days} Days
-"
+                f"✅ <b>Target Silenced:</b> #{nick}\n"
+                f" ⏳ <b>Duration:</b> {days} Days\n"
                 f" 📝 <b>Reason:</b> {reason}"
                 "</blockquote>"
             )
@@ -673,10 +656,8 @@ async def master_admin_state_handler(client, message):
                 await client.send_message(
                     target_id, 
                     "<blockquote>"
-                    f"🔇 <b>System Alert: You have been MUTED for {days} days.</b>
-"
-                    f"📝 <b>Reason:</b> {reason}
-"
+                    f"🔇 <b>System Alert: You have been MUTED for {days} days.</b>\n"
+                    f"📝 <b>Reason:</b> {reason}\n"
                     f"<i>Transmitting and receiving media is disabled.</i>"
                     "</blockquote>"
                 )
@@ -690,8 +671,7 @@ async def master_admin_state_handler(client, message):
         await aio_reply(
             uid, 
             "<blockquote>"
-            f"✅ <b>System Tutorial Link Updated & Activated:</b>
-"
+            f"✅ <b>System Tutorial Link Updated & Activated:</b>\n"
             f" {link}"
             "</blockquote>"
         )
