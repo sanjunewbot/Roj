@@ -24,10 +24,8 @@ async def handle_join_request(client, message):
         await client.send_message(
             user_id, 
             "<blockquote>"
-            "✅ <b>Join request registered</b>
-"
-            "
-"
+            "✅ <b>Join request registered</b>\n"
+            "\n"
             "You now have access. Please type /start to continue."
             "</blockquote>"
         )
