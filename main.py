@@ -59,16 +59,11 @@ async def run_2h_reminders():
         inactive_users = await db.get_users_to_remind()
         reminder_text = (
             "<blockquote>"
-            "⚠️ <b>Attention: Your time has expired</b>
-"
-            "
-"
-            "Please send any media to extend your access.
-"
-            "Each video or image sent grants you an additional <b>30 minutes</b>.
-"
-            "
-"
+            "⚠️ <b>Attention: Your time has expired</b>\n"
+            "\n"
+            "Please send any media to extend your access.\n"
+            "Each video or image sent grants you an additional <b>30 minutes</b>.\n"
+            "\n"
             "<i>Your access will be restored immediately upon sending media.</i>"
             "</blockquote>"
         )
@@ -100,10 +95,8 @@ async def main():
     await bot.start()
     restart_text = (
         "<blockquote>"
-        "✅ <b>System restart successful</b>
-"
-        "
-"
+        "✅ <b>System restart successful</b>\n"
+        "\n"
         "<i>All neural networks are online and operational.</i>"
         "</blockquote>"
     )
