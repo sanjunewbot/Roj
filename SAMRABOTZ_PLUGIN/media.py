@@ -65,10 +65,8 @@ async def handle_media(client, message):
         return await aio_reply(
             user_id, 
             "<blockquote>"
-            f"🔇 <b>ACCESS DENIED: You are currently muted.</b>
-"
-            f"Restriction lifts at: {user['chat_muted_until'].strftime('%H:%M %d/%m')}
-"
+            f"🔇 <b>ACCESS DENIED: You are currently muted.</b>\n"
+            f"Restriction lifts at: {user['chat_muted_until'].strftime('%H:%M %d/%m')}\n"
             f"Transmission and reception of media files are disabled."
             "</blockquote>"
         )
@@ -97,18 +95,13 @@ async def handle_media(client, message):
     except: ch_name = "𝔼𝕃𝕀𝕋𝔼 ℙℝ𝕀𝕍𝔸𝕋𝔼 𝕍𝔸𝕌𝕃𝕋"
 
     new_caption = (
-        f"👤 <b>𝕌𝕊𝔼ℝ:</b> #{user['nickname'].upper()}
-"
-        f"📁 <b>𝔽𝕀𝕃𝔼:</b> #{file_number}
-"
-        f"📢 <b>ℕ𝔼𝕋𝕎𝕆ℝ𝕂:</b> {ch_name}
-"
+        f"👤 <b>𝕌𝕊𝔼ℝ:</b> #{user['nickname'].upper()}\n"
+        f"📁 <b>𝔽𝕀𝕃𝔼:</b> #{file_number}\n"
+        f"📢 <b>ℕ𝔼𝕋𝕎𝕆ℝ𝕂:</b> {ch_name}\n"
         f"🤖 <b>𝔹𝕆𝕋:</b> @{bot_info.username}"
     )
     if bot_config.get('pm_dlt'): 
-        new_caption += f"
-
-⚠️ 𝕋ℍ𝕀𝕊 𝕄𝔼𝔻𝕀𝔸 𝕎𝕀𝕃𝕃 𝔹𝔼 𝔸𝕌𝕋𝕆-𝔻𝔼𝕊𝕋ℝ𝕌ℂ𝕋𝔼𝔻 𝕀ℕ {bot_config.get('dlt_time', 60)} 𝕊𝔼ℂ𝕆ℕ𝔻𝕊."
+        new_caption += f"\n\n⚠️ 𝕋ℍ𝕀𝕊 𝕄𝔼𝔻𝕀𝔸 𝕎𝕀𝕃𝕃 𝔹𝔼 𝔸𝕌𝕋𝕆-𝔻𝔼𝕊𝕋ℝ𝕌ℂ𝕋𝔼𝔻 𝕀ℕ {bot_config.get('dlt_time', 60)} 𝕊𝔼ℂ𝕆ℕ𝔻𝕊."
 
     await db.save_media_to_history(file_id, media_type, uid, file_number, new_caption)
     await db.mark_media_processed(uid)
@@ -144,8 +137,7 @@ async def handle_media(client, message):
                     await aio_reply(
                         user_id, 
                         "<blockquote>"
-                        "✅ <b>Media Album Processed Successfully!</b>
-"
+                        "✅ <b>Media Album Processed Successfully!</b>\n"
                         "Your time has been extended by 30 minutes."
                         "</blockquote>"
                     )
@@ -157,8 +149,7 @@ async def handle_media(client, message):
         await aio_reply(
             user_id, 
             "<blockquote>"
-            "✅ <b>Media Processed Successfully!</b>
-"
+            "✅ <b>Media Processed Successfully!</b>\n"
             "Your time has been extended by 30 minutes."
             "</blockquote>"
         )
@@ -179,10 +170,8 @@ async def reply_keyboard_handler(client, message):
             return await aio_reply(
                 user_id, 
                 "<blockquote>"
-                f"⏳ <b>Anti-Spam Protocol Active!</b>
-"
-                "
-"
+                f"⏳ <b>Anti-Spam Protocol Active!</b>\n"
+                "\n"
                 f"Please wait <b>{time_str}</b> before requesting media history again."
                 "</blockquote>"
             )
@@ -233,9 +222,7 @@ async def reply_keyboard_handler(client, message):
                 stored_cap = item.get('caption', "")
                 f_num = item.get('file_number', 'N/A')
                 new_cap = stored_cap if stored_cap else (
-                    f"📁 <b>𝔽𝕀𝕃𝔼:</b> #{f_num}
-📢 <b>ℕ𝔼𝕋𝕎𝕆ℝ𝕂:</b> {ch_name}
-🤖 <b>𝔹𝕆𝕋:</b> @{bot_info.username}"
+                    f"📁 <b>𝔽𝕀𝕃𝔼:</b> #{f_num}\n📢 <b>ℕ𝔼𝕋𝕎𝕆ℝ𝕂:</b> {ch_name}\n🤖 <b>𝔹𝕆𝕋:</b> @{bot_info.username}"
                 )
 
                 match = re.search(r"#(.*?)(\n|$)", new_cap)
@@ -255,27 +242,15 @@ async def cb_handler(client, query: CallbackQuery):
         if query.data == "show_rules":
             rules_text = (
                 "<blockquote>"
-                "📜 <b>𝔹𝕆𝕋 ℝ𝕌𝕃𝔼𝕊 & 𝔾𝕌𝕀𝔻𝔼𝕃𝕀ℕ𝔼𝕊</b>
-
-"
-                "Share high-quality content you would love to receive. Keep the media flowing.
-
-"
-                "⚠️ <b>𝕊𝕋ℝ𝕀ℂ𝕋𝕃𝕐 ℙℝ𝕆ℍ𝕀𝔹𝕀𝕋𝔼𝔻:</b>
-"
-                "• No offensive language or harassment
-"
-                "• No pedophilia or child abuse material (CP)
-"
-                "• No scamming or unauthorized promotions
-"
-                "• No obscene behavior or incest
-"
-                "• No animal pornography
-"
-                "• No unsolicited pictures of genitalia
-
-"
+                "📜 <b>𝔹𝕆𝕋 ℝ𝕌𝕃𝔼𝕊 & 𝔾𝕌𝕀𝔻𝔼𝕃𝕀ℕ𝔼𝕊</b>\n\n"
+                "Share high-quality content you would love to receive. Keep the media flowing.\n\n"
+                "⚠️ <b>𝕊𝕋ℝ𝕀ℂ𝕋𝕃𝕐 ℙℝ𝕆ℍ𝕀𝔹𝕀𝕋𝔼𝔻:</b>\n"
+                "• No offensive language or harassment\n"
+                "• No pedophilia or child abuse material (CP)\n"
+                "• No scamming or unauthorized promotions\n"
+                "• No obscene behavior or incest\n"
+                "• No animal pornography\n"
+                "• No unsolicited pictures of genitalia\n\n"
                 "🚨 <b>ℙ𝔼ℕ𝔸𝕃𝕋𝕐 𝔽𝕆ℝ 𝕍𝕀𝕆𝕃𝔸𝕋𝕀𝕆ℕ: ℙ𝔼ℝ𝕄𝔸ℕ𝔼ℕ𝕋 𝔹𝔸ℕ.</b>"
                 "</blockquote>"
             )
@@ -290,9 +265,7 @@ async def cb_handler(client, query: CallbackQuery):
             else: 
                 text = (
                     "<blockquote>"
-                    f"⏳ <b>𝔸ℂℂ𝕆𝕌ℕ𝕋 𝕋𝕀𝕄𝔼 ℝ𝔼𝕄𝔸𝕀ℕ𝕀ℕ𝔾:</b> {get_time_left(user['active_until'])}
-
-"
+                    f"⏳ <b>𝔸ℂℂ𝕆𝕌ℕ𝕋 𝕋𝕀𝕄𝔼 ℝ𝔼𝕄𝔸𝕀ℕ𝕀ℕ𝔾:</b> {get_time_left(user['active_until'])}\n\n"
                     "<i>Send media files to replenish your active time!</i>"
                     "</blockquote>"
                 )
@@ -303,26 +276,15 @@ async def cb_handler(client, query: CallbackQuery):
             bot_info = client.me
             welcome_msg = (
                 "<blockquote>"
-                "━━━━━━━━━━━━━━━━━━━━
-"
-                "🔥 𝕎𝔼𝕃ℂ𝕆𝕄𝔼 𝕋𝕆 𝕋ℍ𝔼 𝔼𝕃𝕀𝕋𝔼 ℕ𝔼𝕋𝕎𝕆ℝ𝕂 🔥
-"
-                "━━━━━━━━━━━━━━━━━━━━
-"
-                f"𝔾ℝ𝔼𝔼𝕋𝕀ℕ𝔾𝕊, #{user['nickname'].upper()}! 𝕎𝔼 𝔸ℝ𝔼 𝔾𝕃𝔸𝔻 𝕋𝕆 ℍ𝔸𝕍𝔼 𝕐𝕆𝕌 ℍ𝔼ℝ𝔼.
-
-"
-                f"🤖 𝔹𝕆𝕋 𝕀𝔻𝔼ℕ𝕋𝕀𝕋𝕐: @{bot_info.username.upper()}
-"
-                "⚡ 𝕊𝕐𝕊𝕋𝔼𝕄 𝕍𝕀𝔹𝔼: 𝔽𝔸𝕊𝕋, 𝕊𝔼ℂ𝕌ℝ𝔼, 𝔸ℕ𝔻 𝔸𝔻𝕍𝔸ℕℂ𝔼𝔻.
-
-"
-                f"⏳ 𝔸ℂℂ𝕆𝕌ℕ𝕋 𝕋𝕀𝕄𝔼 ℝ𝔼𝕄𝔸𝕀ℕ𝕀ℕ𝔾: {time_val}
-"
-                f"💎 ℂ𝕌ℝℝ𝔼ℕ𝕋 𝕊𝕋𝔸𝕋𝕌𝕊: {status_val}
-"
-                "━━━━━━━━━━━━━━━━━━━━
-"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "🔥 𝕎𝔼𝕃ℂ𝕆𝕄𝔼 𝕋𝕆 𝕋ℍ𝔼 𝔼𝕃𝕀𝕋𝔼 ℕ𝔼𝕋𝕎𝕆ℝ𝕂 🔥\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                f"𝔾ℝ𝔼𝔼𝕋𝕀ℕ𝔾𝕊, #{user['nickname'].upper()}! 𝕎𝔼 𝔸ℝ𝔼 𝔾𝕃𝔸𝔻 𝕋𝕆 ℍ𝔸𝕍𝔼 𝕐𝕆𝕌 ℍ𝔼ℝ𝔼.\n\n"
+                f"🤖 𝔹𝕆𝕋 𝕀𝔻𝔼ℕ𝕋𝕀𝕋𝕐: @{bot_info.username.upper()}\n"
+                "⚡ 𝕊𝕐𝕊𝕋𝔼𝕄 𝕍𝕀𝔹𝔼: 𝔽𝔸𝕊𝕋, 𝕊𝔼ℂ𝕌ℝ𝔼, 𝔸ℕ𝔻 𝔸𝔻𝕍𝔸ℕℂ𝔼𝔻.\n\n"
+                f"⏳ 𝔸ℂℂ𝕆𝕌ℕ𝕋 𝕋𝕀𝕄𝔼 ℝ𝔼𝕄𝔸𝕀ℕ𝕀ℕ𝔾: {time_val}\n"
+                f"💎 ℂ𝕌ℝℝ𝔼ℕ𝕋 𝕊𝕋𝔸𝕋𝕌𝕊: {status_val}\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
                 "📩 𝕁𝕆𝕀ℕ ℕ𝕆𝕎: <a href='https://t.me/roomjoinus'>@roomjoinus</a>"
                 "</blockquote>"
             )
@@ -332,16 +294,9 @@ async def cb_handler(client, query: CallbackQuery):
             ref_link = f"https://t.me/{bot_info.username}?start=ref_{user['user_id']}"
             text = (
                 "<blockquote>"
-                f"👥 <b>ℝ𝔼𝔽𝔼ℝℝ𝔸𝕃 ℕ𝔼𝕋𝕎𝕆ℝ𝕂</b>
-
-"
-                f"{bot_config.get('ref_text', '')}
-
-"
-                f"🔗 <b>𝕐𝕆𝕌ℝ 𝔼𝕏ℂ𝕃𝕌𝕊𝕀𝕍𝔼 𝕃𝕀ℕ𝕂:</b>
-<code>{ref_link}</code>
-
-"
+                f"👥 <b>ℝ𝔼𝔽𝔼ℝℝ𝔸𝕃 ℕ𝔼𝕋𝕎𝕆ℝ𝕂</b>\n\n"
+                f"{bot_config.get('ref_text', '')}\n\n"
+                f"🔗 <b>𝕐𝕆𝕌ℝ 𝔼𝕏ℂ𝕃𝕌𝕊𝕀𝕍𝔼 𝕃𝕀ℕ𝕂:</b>\n<code>{ref_link}</code>\n\n"
                 f"🪙 <b>ℙ𝕆𝕀ℕ𝕋𝕊 𝔸ℂℂ𝕌𝕄𝕌𝕃𝔸𝕋𝔼𝔻:</b> {user['ref_balance']}/{bot_config['ref_count']}"
                 "</blockquote>"
             )
