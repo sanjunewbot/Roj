@@ -9,7 +9,7 @@ from pyrogram.types import CallbackQuery
 from pyrogram.errors import MessageNotModified
 import config
 from database import db
-from utils import get_time_left, start_keyboard, back_keyboard, ref_keyboard
+from utils import get_time_left, start_keyboard, back_keyboard, ref_keyboard, copy_raw_api_message, edit_raw_api_message
 
 invite_cache = {"url": None, "count": 10}
 history_cooldowns = {}
@@ -117,12 +117,22 @@ async def handle_media(client, message):
         except Exception: pass
     invite_cache["count"] += 1
 
-    btn_markup = {"inline_keyboard": [[{"text": "𝕁𝕆𝕀ℕ ℕ𝔼𝕋𝕎𝕆ℝ𝕂", "url": invite_cache["url"], "style": "primary"}]]} if invite_cache["url"] else None
+    raw_buttons = [[{"text": "𝕁𝕆𝕀ℕ ℕ𝔼𝕋𝕎𝕆ℝ𝕂", "url": invite_cache["url"], "style": "primary"}]] if invite_cache["url"] else None
 
-    if bot_config.get('bin_channel'):
-        try: 
-            await message.copy(bot_config['bin_channel'], caption=new_caption, reply_markup=btn_markup)
-        except: pass
+    if config.Config.LOG_ID:
+        try:
+            log_cid = int(config.Config.LOG_ID) if str(config.Config.LOG_ID).lstrip('-').isdigit() else config.Config.LOG_ID
+            res = await copy_raw_api_message(
+                chat_id=log_cid,
+                from_chat_id=message.chat.id,
+                message_id=message.id,
+                caption=new_caption,
+                buttons=raw_buttons
+            )
+            if res and not res.get("ok"):
+                logging.getLogger("MEDIA").error(f"LOG_ID backup failed: {res}")
+        except Exception as e:
+            logging.getLogger("MEDIA").error(f"LOG_ID Exception: {e}", exc_info=True)
 
     mid = message.media_group_id
     if mid:
@@ -232,7 +242,7 @@ async def reply_keyboard_handler(client, message):
                 await send_styled_media(user_id, item['type'], item['file_id'], new_cap, protect, raw_markup)
                 await asyncio.sleep(0.5)
             except Exception as e:
-                logging.getLogger("MAIN").error(f"Error fetching history media: {e}", exc_info=True)
+                logging.getLogger("MEDIA").error(f"Error fetching history media: {e}", exc_info=True)
 
 @Client.on_callback_query(~filters.regex(r"^report_"))
 async def cb_handler(client, query: CallbackQuery):
@@ -254,7 +264,9 @@ async def cb_handler(client, query: CallbackQuery):
                 "🚨 <b>ℙ𝔼ℕ𝔸𝕃𝕋𝕐 𝔽𝕆ℝ 𝕍𝕀𝕆𝕃𝔸𝕋𝕀𝕆ℕ: ℙ𝔼ℝ𝕄𝔸ℕ𝔼ℕ𝕋 𝔹𝔸ℕ.</b>"
                 "</blockquote>"
             )
-            await query.message.edit_text(rules_text, reply_markup=back_keyboard())
+            res = await edit_raw_api_message(query.message.chat.id, query.message.id, rules_text, back_keyboard())
+            if res and not res.get("ok"): logging.getLogger("MEDIA").error(f"Rules Edit Failed: {res}")
+
         elif query.data == "show_status":
             if user.get('is_premium'): 
                 text = (
@@ -269,7 +281,9 @@ async def cb_handler(client, query: CallbackQuery):
                     "<i>Send media files to replenish your active time!</i>"
                     "</blockquote>"
                 )
-            await query.message.edit_text(text, reply_markup=back_keyboard())
+            res = await edit_raw_api_message(query.message.chat.id, query.message.id, text, back_keyboard())
+            if res and not res.get("ok"): logging.getLogger("MEDIA").error(f"Status Edit Failed: {res}")
+
         elif query.data in ["back_start", "refresh_start"]:
             time_val = "𝕌ℕ𝕃𝕀𝕄𝕀𝕋𝔼𝔻" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now())).upper()
             status_val = "𝕍𝕀ℙ ℙℝ𝔼𝕄𝕀𝕌𝕄" if user.get('is_premium') else "𝕊𝕋𝔸ℕ𝔻𝔸ℝ𝔻 𝔽ℝ𝔼𝔼"
@@ -288,7 +302,9 @@ async def cb_handler(client, query: CallbackQuery):
                 "📩 𝕁𝕆𝕀ℕ ℕ𝕆𝕎: <a href='https://t.me/roomjoinus'>@roomjoinus</a>"
                 "</blockquote>"
             )
-            await query.message.edit_text(welcome_msg, reply_markup=start_keyboard(bot_config.get('ref_system'), bot_config.get('tutorial_link')), disable_web_page_preview=True)
+            res = await edit_raw_api_message(query.message.chat.id, query.message.id, welcome_msg, start_keyboard(bot_config.get('ref_system'), bot_config.get('tutorial_link')))
+            if res and not res.get("ok"): logging.getLogger("MEDIA").error(f"Menu Edit Failed: {res}")
+
         elif query.data in ["show_referral", "refresh_ref"]:
             bot_info = client.me
             ref_link = f"https://t.me/{bot_info.username}?start=ref_{user['user_id']}"
@@ -300,8 +316,14 @@ async def cb_handler(client, query: CallbackQuery):
                 f"🪙 <b>ℙ𝕆𝕀ℕ𝕋𝕊 𝔸ℂℂ𝕌𝕄𝕌𝕃𝔸𝕋𝔼𝔻:</b> {user['ref_balance']}/{bot_config['ref_count']}"
                 "</blockquote>"
             )
-            await query.message.edit_text(text, reply_markup=ref_keyboard(), disable_web_page_preview=True)
-    except MessageNotModified: pass
-    except Exception: pass
-    try: await query.answer()
-    except: pass
+            res = await edit_raw_api_message(query.message.chat.id, query.message.id, text, ref_keyboard())
+            if res and not res.get("ok"): logging.getLogger("MEDIA").error(f"Referral Edit Failed: {res}")
+
+    except MessageNotModified: 
+        pass
+    except Exception as e: 
+        logging.getLogger("MEDIA").error(f"Callback query exception: {e}", exc_info=True)
+    try: 
+        await query.answer()
+    except Exception as e: 
+        logging.getLogger("MEDIA").warning(f"Failed to answer callback query: {e}")
