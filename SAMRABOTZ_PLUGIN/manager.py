@@ -1,39 +1,122 @@
 import re
 import aiohttp
 import logging
+import asyncio
 from datetime import datetime
 from pyrogram import Client, filters
 import config
 from database import db, users
 from utils import get_uptime, parse_duration
 
-async def aio_reply(chat_id, text, reply_to=None):
+logger = logging.getLogger("MANAGER")
+
+async def aio_reply(chat_id, text, reply_to=None, buttons=None):
     url = f"https://api.telegram.org/bot{config.Config.BOT_TOKEN}/sendMessage"
     payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
     if reply_to: payload["reply_to_message_id"] = reply_to
+    if buttons: payload["reply_markup"] = {"inline_keyboard": buttons}
+    async with aiohttp.ClientSession() as session:
+        while True:
+            try:
+                async with session.post(url, json=payload) as resp:
+                    if resp.status == 429:
+                        r = await resp.json()
+                        await asyncio.sleep(r.get("parameters", {}).get("retry_after", 3))
+                        continue
+                    if resp.status != 200:
+                        logger.error(f"API send error: {await resp.text()}")
+                    return await resp.json()
+            except Exception as e:
+                logger.error(f"Network error in aio_reply: {e}", exc_info=True)
+                return None
+
+async def broadcast_warning(target_nick, action, admin_id, reason):
+    admin_user = await db.get_user(admin_id)
+    admin_nick = admin_user['nickname'] if admin_user else "System command"
+    text = (
+        "<blockquote>"
+        "🚨 <b>𝔾𝕃𝕆𝔹𝔸𝕃 𝕊𝔼ℂ𝕌ℝ𝕀𝕋𝕐 𝔸𝕃𝔼ℝ𝕋</b>\n"
+        "\n"
+        f"👤 <b>Target user:</b> #{target_nick}\n"
+        f"🔨 <b>Punishment:</b> {action}\n"
+        f"👮‍♂️ <b>Action by:</b> #{admin_nick}\n"
+        f"📝 <b>Reason:</b> {reason}"
+        "</blockquote>"
+    )
+    all_users = await db.get_active_users()
+    for u in all_users:
+        await aio_reply(u['user_id'], text)
+        await asyncio.sleep(0.05)
+
+@Client.on_callback_query(filters.regex(r"^cancel_action$"))
+async def cancel_action(client, query):
+    user_id = query.from_user.id
+    if user_id in config.admin_states:
+        config.admin_states.pop(user_id, None)
+    url = f"https://api.telegram.org/bot{config.Config.BOT_TOKEN}/editMessageText"
+    payload = {
+        "chat_id": query.message.chat.id,
+        "message_id": query.message.id,
+        "text": "<blockquote>✅ <b>Report workflow cancelled securely.</b></blockquote>",
+        "parse_mode": "HTML"
+    }
     async with aiohttp.ClientSession() as session:
         try:
             await session.post(url, json=payload)
         except Exception as e:
-            logging.getLogger("MAIN").error(f"Manager aio_reply Error: {e}", exc_info=True)
+            logger.error(f"Failed to edit message on cancel: {e}", exc_info=True)
+    try:
+        await query.answer("Action aborted successfully.", show_alert=True)
+    except Exception as e:
+        logger.warning(f"Failed to answer cancel callback: {e}")
+
+@Client.on_message(filters.command("cancel") & filters.user(config.Config.ADMIN_IDS))
+async def cancel_cmd(client, message):
+    user_id = message.from_user.id
+    if user_id in config.admin_states:
+        config.admin_states.pop(user_id, None)
+        await aio_reply(
+            message.chat.id, 
+            "<blockquote>"
+            "✅ <b>Current workflow cancelled successfully.</b>"
+            "</blockquote>", 
+            message.id
+        )
+    else:
+        await aio_reply(
+            message.chat.id, 
+            "<blockquote>"
+            "ℹ️ <b>No active workflow to cancel.</b>"
+            "</blockquote>", 
+            message.id
+        )
 
 @Client.on_callback_query(filters.regex(r"^report_(.+)"))
 async def handle_report(client, query):
     user_id = query.from_user.id
     if user_id not in config.Config.ADMIN_IDS:
-        return await query.answer("🚨 Only administrators can use the Report function.", show_alert=True)
+        try:
+            return await query.answer("🚨 Only administrators can use the report function.", show_alert=True)
+        except Exception as e:
+            logger.warning(f"Failed to answer report callback for non-admin: {e}")
+            return
 
     target_nick = query.matches[0].group(1)
-    await query.answer("Report initiated.")
+    try:
+        await query.answer("Report initiated.")
+    except Exception as e:
+        logger.warning(f"Failed to answer report callback: {e}")
 
     config.admin_states[user_id] = {"step": "mute_1", "target_nick": target_nick}
+    buttons = [[{"text": "Cancel Report", "callback_data": "cancel_action", "style": "danger"}]]
     await aio_reply(
         user_id, 
         "<blockquote>"
-        f"🚨 <b>Report Workflow Activated for #{target_nick}</b>\n"
-        ">\n"
+        f"🚨 <b>Report workflow activated for #{target_nick}</b>\n"
+        "\n"
         "📝 Please reply with the number of days to mute this user (e.g., <code>1</code> for 1 day)."
-        "</blockquote>"
+        "</blockquote>",
+        buttons=buttons
     )
 
 @Client.on_message(filters.command("stats") & filters.user(config.Config.ADMIN_IDS))
@@ -43,21 +126,22 @@ async def stats_cmd(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"📈 <b>SYSTEM DIAGNOSTICS</b>\n"
-            f" ━━━━━━━━━━━━━━━━━━\n"
-            f" 👥 <b>Total Identities:</b> <code>{t}</code>\n"
-            f" 🟢 <b>Active Nodes:</b> <code>{a}</code>\n"
-            f" 🔴 <b>Banished Entities:</b> <code>{b}</code>\n"
-            f" ⏱ <b>Core Uptime:</b> <code>{get_uptime()}</code>\n"
-            f" ━━━━━━━━━━━━━━━━━━"
+            f"📈 <b>System diagnostics</b>\n"
+            f"━━━━━━━━━━━━━━━━━━\n"
+            f"👥 <b>Total identities:</b> <code>{t}</code>\n"
+            f"🟢 <b>Active nodes:</b> <code>{a}</code>\n"
+            f"🔴 <b>Banished entities:</b> <code>{b}</code>\n"
+            f"⏱ <b>Core uptime:</b> <code>{get_uptime()}</code>\n"
+            f"━━━━━━━━━━━━━━━━━━"
             "</blockquote>", 
             message.id
         )
     except Exception as e: 
+        logger.error(f"Stats command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -88,7 +172,7 @@ async def manual_add(client, message):
             await aio_reply(
                 message.chat.id, 
                 "<blockquote>"
-                f"✅ <b>VIP Credentials Granted:</b> #{nick} for {message.command[2]}"
+                f"✅ <b>VIP credentials granted:</b> #{nick} for {message.command[2]}"
                 "</blockquote>", 
                 message.id
             )
@@ -96,10 +180,11 @@ async def manual_add(client, message):
                 await client.send_message(
                     u['user_id'], 
                     "<blockquote>"
-                    "💎 <b>VIP Premium Status Acquired!</b> You now have unlimited, zero-delay access."
+                    "💎 <b>VIP premium status acquired!</b> You now have unlimited, zero-delay access."
                     "</blockquote>"
                 )
-            except: pass
+            except Exception as e:
+                logger.warning(f"Failed to notify user {u['user_id']} of premium status: {e}")
         else: 
             await aio_reply(
                 message.chat.id, 
@@ -109,10 +194,11 @@ async def manual_add(client, message):
                 message.id
             )
     except Exception as e: 
+        logger.error(f"Add premium command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -141,7 +227,7 @@ async def rem_prem_cmd(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"✅ <b>VIP Credentials Revoked:</b> #{nick}"
+            f"✅ <b>VIP credentials revoked:</b> #{nick}"
             "</blockquote>", 
             message.id
         )
@@ -149,15 +235,17 @@ async def rem_prem_cmd(client, message):
             await client.send_message(
                 u['user_id'], 
                 "<blockquote>"
-                "⚠️ <b>WARNING: YOUR VIP ACCESS HAS BEEN TERMINATED BY COMMAND CENTER.</b>"
+                "⚠️ <b>Warning: Your VIP access has been terminated by command center.</b>"
                 "</blockquote>"
             )
-        except: pass
+        except Exception as e:
+            logger.warning(f"Failed to notify user {u['user_id']} of premium removal: {e}")
     except Exception as e: 
+        logger.error(f"Remove premium command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -195,40 +283,48 @@ async def mute_cmd(client, message):
             return await aio_reply(
                 message.chat.id, 
                 "<blockquote>"
-                "❌ <b>Action Denied:</b> Administrators possess system immunity."
+                "❌ <b>Action denied:</b> Administrators possess system immunity."
                 "</blockquote>", 
                 message.id
             )
-        days, reason = 1, "Violation of Network Guidelines"
+        days, reason = 1, "Violation of network guidelines"
         if len(args) > 0 and args[0].isdigit():
             days = int(args[0])
             reason = " ".join(args[1:]) if len(args) > 1 else reason
         elif len(args) > 0: reason = " ".join(args)
+        
         await db.mute_user(u['user_id'], days * 24)
+        
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"🔇 <b>Target Silenced:</b> #{nick}\n"
-            f" ⏳ <b>Duration:</b> {days} Days\n"
-            f" 📝 <b>Reason:</b> {reason}"
+            f"🔇 <b>Target silenced:</b> #{nick}\n"
+            f"⏳ <b>Duration:</b> {days} Days\n"
+            f"📝 <b>Reason:</b> {reason}"
             "</blockquote>", 
             message.id
         )
+        
+        action_text = f"Muted for {days} days"
+        asyncio.create_task(broadcast_warning(nick, action_text, message.from_user.id, reason))
+        
         try: 
             await client.send_message(
                 u['user_id'], 
                 "<blockquote>"
-                f"🔇 <b>System Alert: You have been MUTED for {days} days.</b>\n"
+                f"🔇 <b>System alert: You have been MUTED for {days} days.</b>\n"
                 f"📝 <b>Reason:</b> {reason}\n"
                 f"<i>Transmitting and receiving media is disabled.</i>"
                 "</blockquote>"
             )
-        except: pass
+        except Exception as e:
+            logger.warning(f"Failed to notify user {u['user_id']} of mute: {e}")
     except Exception as e: 
+        logger.error(f"Mute command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -262,7 +358,7 @@ async def unmute_cmd(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"🔊 <b>Silence Revoked:</b> #{u['nickname']}"
+            f"🔊 <b>Silence revoked:</b> #{u['nickname']}"
             "</blockquote>", 
             message.id
         )
@@ -273,12 +369,14 @@ async def unmute_cmd(client, message):
                 "🔊 <b>Your account restrictions have been lifted. Welcome back.</b>"
                 "</blockquote>"
             )
-        except: pass
+        except Exception as e:
+            logger.warning(f"Failed to notify user {u['user_id']} of unmute: {e}")
     except Exception as e: 
+        logger.error(f"Unmute command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -316,39 +414,47 @@ async def ban_cmd(client, message):
             return await aio_reply(
                 message.chat.id, 
                 "<blockquote>"
-                "❌ <b>Action Denied:</b> Administrators possess system immunity."
+                "❌ <b>Action denied:</b> Administrators possess system immunity."
                 "</blockquote>", 
                 message.id
             )
-        days, reason = 365, "Severe Protocol Violation"
+        days, reason = 365, "Severe protocol violation"
         if len(args) > 0 and args[0].isdigit():
             days = int(args[0])
             reason = " ".join(args[1:]) if len(args) > 1 else reason
         elif len(args) > 0: reason = " ".join(args)
+        
         await db.ban_user(u['user_id'], days)
+        
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"🔨 <b>Target Banished:</b> #{nick}\n"
-            f" ⏳ <b>Duration:</b> {days} Days\n"
-            f" 📝 <b>Reason:</b> {reason}"
+            f"🔨 <b>Target banished:</b> #{nick}\n"
+            f"⏳ <b>Duration:</b> {days} Days\n"
+            f"📝 <b>Reason:</b> {reason}"
             "</blockquote>", 
             message.id
         )
+        
+        action_text = f"Banned for {days} days"
+        asyncio.create_task(broadcast_warning(nick, action_text, message.from_user.id, reason))
+        
         try: 
             await client.send_message(
                 u['user_id'], 
                 "<blockquote>"
-                f"🚨 <b>CRITICAL ALERT: Your network access has been permanently revoked for {days} days.</b>\n"
+                f"🚨 <b>Critical alert: Your network access has been permanently revoked for {days} days.</b>\n"
                 f"📝 <b>Reason:</b> {reason}"
                 "</blockquote>"
             )
-        except: pass
+        except Exception as e:
+            logger.warning(f"Failed to notify user {u['user_id']} of ban: {e}")
     except Exception as e: 
+        logger.error(f"Ban command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -382,15 +488,16 @@ async def unban_cmd(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"🕊️ <b>Target Pardoned:</b> #{u['nickname']}"
+            f"🕊️ <b>Target pardoned:</b> #{u['nickname']}"
             "</blockquote>", 
             message.id
         )
     except Exception as e: 
+        logger.error(f"Unban command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -410,15 +517,16 @@ async def toggle_chat(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"💬 Global Chat Protocol is now: <b>{'ONLINE' if mode else 'OFFLINE'}</b>"
+            f"💬 <b>Global chat protocol is now:</b> {'ONLINE' if mode else 'OFFLINE'}"
             "</blockquote>", 
             message.id
         )
     except Exception as e: 
+        logger.error(f"Chat toggle command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -438,15 +546,16 @@ async def restrict_cmd(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"✅ <b>Media Forwarding Protection:</b> {'ENGAGED' if mode else 'DISENGAGED'}"
+            f"✅ <b>Media forwarding protection:</b> {'ENGAGED' if mode else 'DISENGAGED'}"
             "</blockquote>", 
             message.id
         )
     except Exception as e: 
+        logger.error(f"Restrict toggle command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -466,15 +575,16 @@ async def wait_cmd(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"✅ <b>Network Entry Lock:</b> {'ACTIVE' if mode else 'DISABLED'}"
+            f"✅ <b>Network entry lock:</b> {'ACTIVE' if mode else 'DISABLED'}"
             "</blockquote>", 
             message.id
         )
     except Exception as e: 
+        logger.error(f"Wait toggle command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -496,15 +606,16 @@ async def toggle_dlt(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"✅ <b>Auto-Purge Protocol:</b> {'ONLINE' if mode else 'OFFLINE'}"
+            f"✅ <b>Auto-purge protocol:</b> {'ONLINE' if mode else 'OFFLINE'}"
             "</blockquote>", 
             message.id
         )
     except Exception as e: 
+        logger.error(f"Pmdlt toggle command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -524,15 +635,16 @@ async def toggle_get_buttn(client, message):
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"✅ <b>Media History Button:</b> {'ONLINE' if mode else 'OFFLINE'}"
+            f"✅ <b>Media history button:</b> {'ONLINE' if mode else 'OFFLINE'}"
             "</blockquote>", 
             message.id
         )
     except Exception as e: 
+        logger.error(f"Get button toggle command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
@@ -553,7 +665,7 @@ async def manage_tutorial(client, message):
             await aio_reply(
                 message.chat.id, 
                 "<blockquote>"
-                "✅ <b>Tutorial Video Disabled.</b> Crystal button hidden."
+                "✅ <b>Tutorial video disabled.</b> Crystal button hidden."
                 "</blockquote>", 
                 message.id
             )
@@ -562,19 +674,20 @@ async def manage_tutorial(client, message):
             await aio_reply(
                 message.chat.id, 
                 "<blockquote>"
-                "🔗 <b>System Waiting:</b> Please send the Tutorial Video Link (URL)."
+                "🔗 <b>System waiting:</b> Please send the tutorial video link (URL)."
                 "</blockquote>", 
                 message.id
             )
     except Exception as e: 
+        logger.error(f"Tutorial toggle command failed: {e}", exc_info=True)
         await aio_reply(
             message.chat.id, 
             "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
+            f"❌ <b>System fault:</b> {e}"
             "</blockquote>"
         )
 
-@Client.on_message(filters.text & filters.private & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
+@Client.on_message(filters.text & filters.private & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial", "cancel"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
 async def master_admin_state_handler(client, message):
     uid = message.from_user.id
     if uid not in config.admin_states: return
@@ -585,17 +698,19 @@ async def master_admin_state_handler(client, message):
             days = int(message.text.strip())
             state["days"] = days
             state["step"] = "mute_2"
+            buttons = [[{"text": "Cancel Report", "callback_data": "cancel_action", "style": "danger"}]]
             await aio_reply(
                 uid, 
                 "<blockquote>"
                 f"📝 <b>Provide the reason for muting #{state['target_nick']}:</b>"
-                "</blockquote>"
+                "</blockquote>",
+                buttons=buttons
             )
         except ValueError:
             await aio_reply(
                 uid, 
                 "<blockquote>"
-                "❌ <b>Invalid Input:</b> Please provide a numeric value for days."
+                "❌ <b>Invalid input:</b> Please provide a numeric value for days."
                 "</blockquote>"
             )
 
@@ -615,25 +730,30 @@ async def master_admin_state_handler(client, message):
         else:
             target_id = u['user_id']
             await db.mute_user(target_id, days * 24)
-            logging.getLogger("MAIN").info(f"User #{nick} muted by Admin {uid} for {days} days. Reason: {reason}")
+            logger.info(f"User #{nick} muted by Admin {uid} for {days} days. Reason: {reason}")
             await aio_reply(
                 uid, 
                 "<blockquote>"
-                f"✅ <b>Target Silenced:</b> #{nick}\n"
-                f" ⏳ <b>Duration:</b> {days} Days\n"
-                f" 📝 <b>Reason:</b> {reason}"
+                f"✅ <b>Target silenced:</b> #{nick}\n"
+                f"⏳ <b>Duration:</b> {days} Days\n"
+                f"📝 <b>Reason:</b> {reason}"
                 "</blockquote>"
             )
+            
+            action_text = f"Muted for {days} days"
+            asyncio.create_task(broadcast_warning(nick, action_text, uid, reason))
+            
             try: 
                 await client.send_message(
                     target_id, 
                     "<blockquote>"
-                    f"🔇 <b>System Alert: You have been MUTED for {days} days.</b>\n"
+                    f"🔇 <b>System alert: You have been MUTED for {days} days.</b>\n"
                     f"📝 <b>Reason:</b> {reason}\n"
                     f"<i>Transmitting and receiving media is disabled.</i>"
                     "</blockquote>"
                 )
-            except: pass
+            except Exception as e:
+                logger.warning(f"Failed to notify user {target_id} of mute via state handler: {e}")
         config.admin_states.pop(uid, None)
 
     elif state.get("step") == "tut_1":
@@ -643,8 +763,8 @@ async def master_admin_state_handler(client, message):
         await aio_reply(
             uid, 
             "<blockquote>"
-            f"✅ <b>System Tutorial Link Updated & Activated:</b>\n"
-            f" {link}"
+            f"✅ <b>System tutorial link updated & activated:</b>\n"
+            f"{link}"
             "</blockquote>"
         )
 
@@ -662,7 +782,7 @@ async def master_admin_state_handler(client, message):
             await aio_reply(
                 uid, 
                 "<blockquote>"
-                "❌ <b>Invalid Input:</b> Please provide a numeric value."
+                "❌ <b>Invalid input:</b> Please provide a numeric value."
                 "</blockquote>"
             )
     elif state.get("step") == "ref_2":
@@ -671,7 +791,7 @@ async def master_admin_state_handler(client, message):
         await aio_reply(
             uid, 
             "<blockquote>"
-            "⏱ <b>Final Step:</b> Provide the premium duration reward (e.g., 7d, 1M, 24h)."
+            "⏱ <b>Final step:</b> Provide the premium duration reward (e.g., 7d, 1M, 24h)."
             "</blockquote>"
         )
     elif state.get("step") == "ref_3":
@@ -681,13 +801,13 @@ async def master_admin_state_handler(client, message):
             await aio_reply(
                 uid, 
                 "<blockquote>"
-                "✅ <b>Referral Protocol Configuration Complete. System is now active.</b>"
+                "✅ <b>Referral protocol configuration complete. System is now active.</b>"
                 "</blockquote>"
             )
         else: 
             await aio_reply(
                 uid, 
                 "<blockquote>"
-                "❌ <b>Invalid Formatting:</b> Please utilize proper syntax (e.g., 7d, 1M)."
+                "❌ <b>Invalid formatting:</b> Please utilize proper syntax (e.g., 7d, 1M)."
                 "</blockquote>"
             )
