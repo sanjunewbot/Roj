@@ -122,7 +122,6 @@ async def main():
             BotCommand("ban", "🔨 ADMIN: BAN USER"),
             BotCommand("unban", "🕊️ ADMIN: UNBAN USER"),
             BotCommand("restrict", "🔒 ADMIN: PROTECTION MODE"),
-            BotCommand("binch", "🗑️ ADMIN: SET BACKUP BIN"),
             BotCommand("pmdlt", "⏱️ ADMIN: AUTO PURGE SETUP"),
             BotCommand("ref", "⚙️ ADMIN: REFERRAL CONFIG"),
             BotCommand("get_buttn", "🎥 ADMIN: MEDIA HISTORY"),
