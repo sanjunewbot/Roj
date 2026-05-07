@@ -4,10 +4,11 @@ from datetime import datetime, timedelta
 from config import Config
 
 client = AsyncIOMotorClient(Config.MONGO_URL)
-users = client.quitehub_bot.users
-settings = client.quitehub_bot.settings
-processed_media = client.quitehub_bot.processed_media
-media_history = client.quitehub_bot.media_history
+db_instance = client[Config.DB_NAME]
+users = db_instance.users
+settings = db_instance.settings
+processed_media = db_instance.processed_media
+media_history = db_instance.media_history
 
 class db:
     @staticmethod
@@ -124,7 +125,6 @@ class db:
         if not s:
             default = {
                 "id": "global_config", 
-                "bin_channel": None, 
                 "pm_dlt": False, 
                 "dlt_time": 60, 
                 "ref_system": False, 
