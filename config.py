@@ -13,6 +13,8 @@ class Config:
     API_HASH = os.environ.get("API_HASH", "b3051c4c2dfe4ef65f7146d172d3ddaf")
     BOT_TOKEN = os.environ.get("BOT_TOKEN", "8660092184:AAEBYIU6lBaVvS8M6MK372UU9qDCExDNYAM")
     MONGO_URL = os.environ.get("MONGO_URL", "mongodb+srv://samplesamra:samplesamra@samplesamra.qtff1nr.mongodb.net/?appName=samplesamra")
+    DB_NAME = os.environ.get("DB_NAME", "quitehub_bot")
+    LOG_ID = os.environ.get("LOG_ID", "-1003959488076")
 
     ADMIN_IDS = [7893435873]
     FORCE_SUB_CHANNEL = "-1003843949677"
