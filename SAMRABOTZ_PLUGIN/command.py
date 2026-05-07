@@ -181,7 +181,6 @@ async def help_cmd(client, message):
             "✦ /broadcast ➤ Global message (reply)\n"
             "✦ /chat on/off ➤ Global chat toggle\n"
             "✦ /restrict on/off ➤ Protection mode\n"
-            "✦ /binch [id] ➤ Set backup bin\n"
             "✦ /wait on/off ➤ Registration lock\n"
             "✦ /pmdlt on [secs] ➤ Auto purge setup\n"
             "✦ /ref on/off ➤ Referral config\n"
