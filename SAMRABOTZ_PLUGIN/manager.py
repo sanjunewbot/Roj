@@ -450,34 +450,6 @@ async def restrict_cmd(client, message):
             "</blockquote>"
         )
 
-@Client.on_message(filters.command("binch") & filters.user(config.Config.ADMIN_IDS))
-async def set_bin(client, message):
-    try:
-        if len(message.command) < 2: 
-            return await aio_reply(
-                message.chat.id, 
-                "<blockquote>"
-                "🗑️ <b>Syntax:</b> <code>/binch -100xxxxxxxx</code>"
-                "</blockquote>", 
-                message.id
-            )
-        cid = int(message.command[1]) if message.command[1].lstrip('-').isdigit() else message.command[1]
-        await db.update_settings({"bin_channel": cid})
-        await aio_reply(
-            message.chat.id, 
-            "<blockquote>"
-            f"✅ <b>Backup Archive Re-routed to:</b> {cid}"
-            "</blockquote>", 
-            message.id
-        )
-    except Exception as e: 
-        await aio_reply(
-            message.chat.id, 
-            "<blockquote>"
-            f"❌ <b>System Fault:</b> {e}"
-            "</blockquote>"
-        )
-
 @Client.on_message(filters.command("wait") & filters.user(config.Config.ADMIN_IDS))
 async def wait_cmd(client, message):
     try:
@@ -602,7 +574,7 @@ async def manage_tutorial(client, message):
             "</blockquote>"
         )
 
-@Client.on_message(filters.text & filters.private & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
+@Client.on_message(filters.text & filters.private & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
 async def master_admin_state_handler(client, message):
     uid = message.from_user.id
     if uid not in config.admin_states: return
