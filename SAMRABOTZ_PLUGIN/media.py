@@ -62,6 +62,39 @@ async def handle_media(client, message):
             "⚠️ You are not registered. Please run /start to initialize the bot."
             "</blockquote>"
         )
+
+    if user_id in config.pending_payments:
+        elapsed = time.time() - config.pending_payments[user_id]
+        if elapsed < 300:
+            admin_id = config.Config.ADMIN_IDS[0]
+            del config.pending_payments[user_id]
+            buttons = [
+                [{"text": "💎 ADD PREMIUM", "callback_data": f"addprem_{user['nickname']}", "style": "success"}],
+                [{"text": "❌ REVOKE", "callback_data": f"revoke_{user['nickname']}", "style": "danger"}]
+            ]
+            await copy_raw_api_message(
+                chat_id=admin_id,
+                from_chat_id=message.chat.id,
+                message_id=message.id,
+                caption=f"💳 <b>Payment Verification Request from #{user['nickname']}</b>",
+                buttons=buttons
+            )
+            return await aio_reply(
+                user_id,
+                "<blockquote>"
+                "✅ <b>Screenshot sent to Admin successfully!</b>\n"
+                "Please wait for verification. Your VIP status will be updated shortly."
+                "</blockquote>"
+            )
+        else:
+            del config.pending_payments[user_id]
+            return await aio_reply(
+                user_id,
+                "<blockquote>"
+                "❌ <b>Timeout:</b> Your payment request window expired. Please initiate again via /plans."
+                "</blockquote>"
+            )
+
     if user.get('is_banned'): return
     if user.get('chat_muted_until') and user['chat_muted_until'] > datetime.now(): 
         return await aio_reply(
