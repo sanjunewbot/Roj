@@ -134,7 +134,9 @@ async def main():
             BotCommand("stats", "📈 ADMIN: LIVE SYSTEM DIAGNOSTICS"),
             BotCommand("wait", "🚦 ADMIN: REGISTRATION LOCK"),
             BotCommand("broadcast", "📢 ADMIN: GLOBAL MESSAGE"),
-            BotCommand("chat", "💬 ADMIN: GLOBAL CHAT TOGGLE")
+            BotCommand("chat", "💬 ADMIN: GLOBAL CHAT TOGGLE"),
+            BotCommand("setqr", "📷 ADMIN: SET PAYMENT QR & UPI"),
+            BotCommand("delqr", "🗑️ ADMIN: DELETE PAYMENT QR")
         ])
     except Exception as e:
         logger.error(f"Failed to set bot commands: {str(e)}", exc_info=True)
