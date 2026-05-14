@@ -28,7 +28,7 @@ def create_action_buttons(invite_url, report_nick=None):
     keys = []
     if invite_url:
         keys.append([{"text": "𝕁𝕆𝕀ℕ ℕ𝔼𝕋𝕎𝕆ℝ𝕂", "url": invite_url, "style": "primary"}])
-    if report_nick:
+    if report_nick and report_nick != config.Config.ADMIN_GOD_NAME:
         keys.append([{"text": "🚨 ℝ𝔼ℙ𝕆ℝ𝕋", "callback_data": f"report_{report_nick}", "style": "danger"}])
     return {"inline_keyboard": keys} if keys else None
 
@@ -52,6 +52,8 @@ async def send_styled_media(chat_id, media_type, file_id, caption, protect_conte
 @Client.on_message((filters.photo | filters.video) & filters.private)
 async def handle_media(client, message):
     user_id = message.from_user.id
+    is_admin = user_id in config.Config.ADMIN_IDS
+
     user = await db.get_user(user_id)
     if not user: 
         return await aio_reply(
@@ -94,8 +96,10 @@ async def handle_media(client, message):
         else: ch_name = "𝔼𝕃𝕀𝕋𝔼 ℙℝ𝕀𝕍𝔸𝕋𝔼 𝕍𝔸𝕌𝕃𝕋"
     except: ch_name = "𝔼𝕃𝕀𝕋𝔼 ℙℝ𝕀𝕍𝔸𝕋𝔼 𝕍𝔸𝕌𝕃𝕋"
 
+    display_name = config.Config.ADMIN_GOD_NAME if is_admin else f"#{user['nickname'].upper()}"
+
     new_caption = (
-        f"👤 <b>𝕌𝕊𝔼ℝ:</b> #{user['nickname'].upper()}\n"
+        f"👤 <b>𝕌𝕊𝔼ℝ:</b> {display_name}\n"
         f"📁 <b>𝔽𝕀𝕃𝔼:</b> #{file_number}\n"
         f"📢 <b>ℕ𝔼𝕋𝕎𝕆ℝ𝕂:</b> {ch_name}\n"
         f"🤖 <b>𝔹𝕆𝕋:</b> @{bot_info.username}"
@@ -236,7 +240,11 @@ async def reply_keyboard_handler(client, message):
                 )
 
                 match = re.search(r"#(.*?)(\n|$)", new_cap)
-                report_nick = match.group(1).strip() if match else "Unknown"
+                if not match:
+                    match_god = re.search(config.Config.ADMIN_GOD_NAME, new_cap)
+                    report_nick = config.Config.ADMIN_GOD_NAME if match_god else "Unknown"
+                else:
+                    report_nick = match.group(1).strip()
 
                 raw_markup = create_action_buttons(invite_cache["url"], report_nick)
                 await send_styled_media(user_id, item['type'], item['file_id'], new_cap, protect, raw_markup)
@@ -288,12 +296,15 @@ async def cb_handler(client, query: CallbackQuery):
             time_val = "𝕌ℕ𝕃𝕀𝕄𝕀𝕋𝔼𝔻" if user.get('is_premium') else get_time_left(user.get('active_until', datetime.now())).upper()
             status_val = "𝕍𝕀ℙ ℙℝ𝔼𝕄𝕀𝕌𝕄" if user.get('is_premium') else "𝕊𝕋𝔸ℕ𝔻𝔸ℝ𝔻 𝔽ℝ𝔼𝔼"
             bot_info = client.me
+
+            display_name = config.Config.ADMIN_GOD_NAME if query.from_user.id in config.Config.ADMIN_IDS else f"#{user['nickname'].upper()}"
+
             welcome_msg = (
                 "<blockquote>"
                 "━━━━━━━━━━━━━━━━━━━━\n"
                 "🔥 𝕎𝔼𝕃ℂ𝕆𝕄𝔼 𝕋𝕆 𝕋ℍ𝔼 𝔼𝕃𝕀𝕋𝔼 ℕ𝔼𝕋𝕎𝕆ℝ𝕂 🔥\n"
                 "━━━━━━━━━━━━━━━━━━━━\n"
-                f"𝔾ℝ𝔼𝔼𝕋𝕀ℕ𝔾𝕊, #{user['nickname'].upper()}! 𝕎𝔼 𝔸ℝ𝔼 𝔾𝕃𝔸𝔻 𝕋𝕆 ℍ𝔸𝕍𝔼 𝕐𝕆𝕌 ℍ𝔼ℝ𝔼.\n\n"
+                f"𝔾ℝ𝔼𝔼𝕋𝕀ℕ𝔾𝕊, {display_name}! 𝕎𝔼 𝔸ℝ𝔼 𝔾𝕃𝔸𝔻 𝕋𝕆 ℍ𝔸𝕍𝔼 𝕐𝕆𝕌 ℍ𝔼ℝ𝔼.\n\n"
                 f"🤖 𝔹𝕆𝕋 𝕀𝔻𝔼ℕ𝕋𝕀𝕋𝕐: @{bot_info.username.upper()}\n"
                 "⚡ 𝕊𝕐𝕊𝕋𝔼𝕄 𝕍𝕀𝔹𝔼: 𝔽𝔸𝕊𝕋, 𝕊𝔼ℂ𝕌ℝ𝔼, 𝔸ℕ𝔻 𝔸𝔻𝕍𝔸ℕℂ𝔼𝔻.\n\n"
                 f"⏳ 𝔸ℂℂ𝕆𝕌ℕ𝕋 𝕋𝕀𝕄𝔼 ℝ𝔼𝕄𝔸𝕀ℕ𝕀ℕ𝔾: {time_val}\n"
