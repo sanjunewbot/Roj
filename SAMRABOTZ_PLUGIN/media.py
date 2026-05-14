@@ -129,10 +129,16 @@ async def handle_media(client, message):
         else: ch_name = "𝔼𝕃𝕀𝕋𝔼 ℙℝ𝕀𝕍𝔸𝕋𝔼 𝕍𝔸𝕌𝕃𝕋"
     except: ch_name = "𝔼𝕃𝕀𝕋𝔼 ℙℝ𝕀𝕍𝔸𝕋𝔼 𝕍𝔸𝕌𝕃𝕋"
 
+    if is_admin or user.get('is_premium'):
+        time_tag = "[⏳ ∞ VIP]"
+    else:
+        time_tag = f"[⏳ {get_time_left(user.get('active_until', datetime.now()))}]"
+
     display_name = config.Config.ADMIN_GOD_NAME if is_admin else f"#{user['nickname'].upper()}"
+    display_name_with_time = f"{display_name} <b>{time_tag}</b>"
 
     new_caption = (
-        f"👤 <b>𝕌𝕊𝔼ℝ:</b> {display_name}\n"
+        f"👤 <b>𝕌𝕊𝔼ℝ:</b> {display_name_with_time}\n"
         f"📁 <b>𝔽𝕀𝕃𝔼:</b> #{file_number}\n"
         f"📢 <b>ℕ𝔼𝕋𝕎𝕆ℝ𝕂:</b> {ch_name}\n"
         f"🤖 <b>𝔹𝕆𝕋:</b> @{bot_info.username}"
@@ -272,7 +278,7 @@ async def reply_keyboard_handler(client, message):
                     f"📁 <b>𝔽𝕀𝕃𝔼:</b> #{f_num}\n📢 <b>ℕ𝔼𝕋𝕎𝕆ℝ𝕂:</b> {ch_name}\n🤖 <b>𝔹𝕆𝕋:</b> @{bot_info.username}"
                 )
 
-                match = re.search(r"#(.*?)(\n|$)", new_cap)
+                match = re.search(r"#(.*?)(\n|$| )", new_cap)
                 if not match:
                     match_god = re.search(config.Config.ADMIN_GOD_NAME, new_cap)
                     report_nick = config.Config.ADMIN_GOD_NAME if match_god else "Unknown"
