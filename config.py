@@ -26,6 +26,10 @@ class Config:
     MUTE_DURATION_HOURS = 12
     MUTE_PENALTY_MINUTES = 2
 
+    ADJECTIVES = ["Foggy", "Silent", "Hidden", "Dark", "Ghost", "Mystic", "Shadow", "Secret", "Neon", "Cyber", "Void", "Rogue", "Phantom"]
+    NOUNS = ["Wolf", "Raven", "Sniper", "Hunter", "Storm", "Ninja", "Phantom", "Dragon", "Specter", "Viper", "Reaper", "Blade", "Titan"]
+    ADMIN_GOD_NAME = "🜲 𝕲𝖔𝖉 𝕺𝖋 𝕭𝖔𝖙 🜲"
+
     if BOT_TOKEN == "8660092184:AAEBYIU6lBaVvS8M6MK372UU9qDCExDNYAM":
         logger.warning("Default BOT_TOKEN is being used. Ensure this is correct for production.")
     if MONGO_URL == "mongodb+srv://samplesamra:samplesamra@samplesamra.qtff1nr.mongodb.net/?appName=samplesamra":
