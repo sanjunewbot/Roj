@@ -5,7 +5,7 @@ from pyrogram import Client, filters
 import config
 from database import db, users
 from utils import parse_duration, start_keyboard, history_reply_keyboard, get_time_left, send_raw_api_message
-from SAMRABOTZ_PLUGIN.pforce import check_fsub, ADJECTIVES, NOUNS
+from SAMRABOTZ_PLUGIN.pforce import check_fsub
 
 logger = logging.getLogger("COMMAND")
 
@@ -62,7 +62,7 @@ async def start_cmd(client, message):
             logger.error(f"Referral processing error for user {user_id}: {str(e)}", exc_info=True)
 
     if not user:
-        random_name = f"{random.choice(ADJECTIVES)}{random.choice(NOUNS)}{random.randint(1000, 9999)}"
+        random_name = f"{random.choice(config.Config.ADJECTIVES)}{random.choice(config.Config.NOUNS)}{random.randint(1000, 9999)}"
         await db.add_user(user_id, random_name)
         user = await db.get_user(user_id)
 
@@ -96,11 +96,13 @@ async def start_cmd(client, message):
     status_val = "VIP Premium" if user.get('is_premium') else "Standard Free"
     bot_info = client.me
 
+    display_name = config.Config.ADMIN_GOD_NAME if user_id in config.Config.ADMIN_IDS else f"#{user['nickname']}"
+
     welcome_msg = (
         "<blockquote>"
         f"🔥 <b>Welcome to the elite network</b>\n"
         f"\n"
-        f"Greetings, #{user['nickname']}! We are glad to have you here.\n"
+        f"Greetings, {display_name}! We are glad to have you here.\n"
         f"\n"
         f"🤖 <b>Bot identity:</b> @{bot_info.username}\n"
         f"⚡ <b>System vibe:</b> Fast, secure, and advanced.\n"
@@ -123,31 +125,11 @@ async def start_cmd(client, message):
 
 @Client.on_message(filters.command("register") & filters.private)
 async def register_cmd(client, message):
-    is_joined, _ = await check_fsub(client, message.from_user.id)
-    if not is_joined: return
-    if len(message.command) < 2: 
-        return await message.reply(
-            "<blockquote>"
-            "📝 <b>Format instruction</b>\n"
-            "\n"
-            "Use <code>/register [NewName]</code> to update your identity."
-            "</blockquote>"
-        )
-
-    user_id = message.from_user.id
-    new_name = message.command[1]
-    user = await db.get_user(user_id)
-
-    if not user:
-        await db.add_user(user_id, new_name)
-    else:
-        await users.update_one({"user_id": user_id}, {"$set": {"nickname": new_name}})
-
     await message.reply(
         "<blockquote>"
-        f"✅ <b>Identity updated</b>\n"
+        "🚫 <b>Action Denied</b>\n"
         "\n"
-        f"Your anonymous identity has been updated to <b>{new_name}</b>."
+        "Registration identity changes have been permanently disabled for security and anonymity. Your current identity is permanent."
         "</blockquote>"
     )
 
@@ -160,7 +142,6 @@ async def help_cmd(client, message):
         "👤 <b>User commands</b>\n"
         "✦ /start ➤ Dashboard & status\n"
         "✦ /me ➤ Detailed profile stats\n"
-        "✦ /register [name] ➤ Update identity\n"
         "✦ /referral ➤ Earn VIP access\n"
         "✦ /plans ➤ View plans & benefits\n"
         "✦ /help ➤ Open command menu\n"
