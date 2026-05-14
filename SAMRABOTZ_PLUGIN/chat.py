@@ -26,13 +26,26 @@ async def aio_reply(chat_id, text, reply_to=None):
         except Exception as e:
             logging.getLogger("MAIN").error(f"Chat aio_reply Exception: {e}", exc_info=True)
 
-@Client.on_message(filters.text & filters.private & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial", "updatecmds"]) & ~filters.regex("^(GET MEDIA HISTORY)$"), group=1)
+@Client.on_message(filters.text & filters.private & ~filters.command(["start", "help", "rem_prem", "restrict", "binch", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial", "updatecmds", "cancel"]) & ~filters.regex("^(GET MEDIA HISTORY)$"), group=1)
 async def chat_handler(client, message):
     user_id = message.from_user.id
     is_admin = user_id in config.Config.ADMIN_IDS
 
     if user_id in config.admin_states:
         raise ContinuePropagation
+
+    if user_id in config.pending_payments:
+        elapsed = time.time() - config.pending_payments[user_id]
+        if elapsed < 300:
+            return await aio_reply(
+                user_id,
+                "<blockquote>"
+                "⚠️ <b>Invalid Input:</b> Please send a valid payment screenshot (Image) only."
+                "</blockquote>",
+                message.id
+            )
+        else:
+            del config.pending_payments[user_id]
 
     user = await db.get_user(user_id)
     if not user or user.get('is_banned'): return
