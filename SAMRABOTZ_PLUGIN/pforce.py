@@ -8,16 +8,13 @@ from database import db
 
 logger = logging.getLogger("PFORCE")
 
-ADJECTIVES = ["Foggy", "Silent", "Hidden", "Dark", "Ghost", "Mystic", "Shadow", "Secret", "Neon", "Cyber"]
-NOUNS = ["Wolf", "Raven", "Sniper", "Hunter", "Storm", "Ninja", "Phantom", "Dragon", "Specter", "Viper"]
-
 @Client.on_chat_join_request()
 async def handle_join_request(client, message):
     user_id = message.from_user.id
     chat_id = message.chat.id
     user = await db.get_user(user_id)
     if not user:
-        random_name = f"{random.choice(ADJECTIVES)}{random.choice(NOUNS)}{random.randint(1000, 9999)}"
+        random_name = f"{random.choice(config.Config.ADJECTIVES)}{random.choice(config.Config.NOUNS)}{random.randint(1000, 9999)}"
         await db.add_user(user_id, random_name)
     await db.add_requested_channel(user_id, chat_id)
     try: 
