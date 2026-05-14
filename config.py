@@ -41,3 +41,4 @@ album_cache = {}
 admin_states = {}
 chat_spam_tracker = {}
 invite_links_cache = {}
+pending_payments = {}
