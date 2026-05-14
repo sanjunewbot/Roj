@@ -2,11 +2,12 @@ import re
 import aiohttp
 import logging
 import asyncio
+import time
 from datetime import datetime
 from pyrogram import Client, filters
 import config
 from database import db, users
-from utils import get_uptime, parse_duration
+from utils import get_uptime, parse_duration, edit_raw_api_message
 
 logger = logging.getLogger("MANAGER")
 
@@ -52,16 +53,100 @@ async def broadcast_warning(target_nick, action, admin_id, reason):
         await aio_reply(u['user_id'], text)
         await asyncio.sleep(0.05)
 
+@Client.on_callback_query(filters.regex(r"^buy_vip$"))
+async def buy_vip_preview(client, query):
+    text = (
+        "<blockquote>"
+        "⚠️ <b>Confirm your request</b>\n"
+        "\n"
+        f"The following message will be sent to <b>{config.Config.ADMIN_GOD_NAME}</b> in the global chat:\n"
+        "\n"
+        "<i>\"I want to upgrade my account to VIP Premium. Please provide the UPI details for payment.\"</i>"
+        "</blockquote>"
+    )
+    buttons = [
+        [{"text": "✅ Send Request", "callback_data": "confirm_buy_vip", "style": "success"}],
+        [{"text": "❌ Cancel", "callback_data": "cancel_action", "style": "danger"}]
+    ]
+    await edit_raw_api_message(query.message.chat.id, query.message.id, text, buttons)
+
+@Client.on_callback_query(filters.regex(r"^confirm_buy_vip$"))
+async def confirm_buy_vip(client, query):
+    user_id = query.from_user.id
+    user = await db.get_user(user_id)
+    if not user: return
+
+    config.pending_payments[user_id] = time.time()
+
+    payment_text = (
+        "<blockquote>"
+        "💳 <b>VIP PURCHASE INITIATED</b>\n"
+        "\n"
+        "Please make the payment using the details below:\n"
+        "<b>UPI ID:</b> <code>admin@upi</code>\n"
+        "\n"
+        "<i>⚠️ Send the payment screenshot (Image) here within 5 minutes. Do not send text or links.</i>"
+        "</blockquote>"
+    )
+    await edit_raw_api_message(query.message.chat.id, query.message.id, payment_text)
+
+    display_name = f"#{user['nickname'].upper()}"
+    chat_text = (
+        f"💬 <b>{display_name}</b> ➦ <b>{config.Config.ADMIN_GOD_NAME}</b>\n\n"
+        f"💳 I want to upgrade my account to VIP Premium. Please provide the UPI details for payment."
+    )
+    all_users = await db.get_all_users()
+    for target in all_users:
+        if target['user_id'] == user_id or target.get('is_banned') or (target.get('chat_muted_until') and target['chat_muted_until'] > datetime.now()):
+            continue
+        await aio_reply(target['user_id'], chat_text)
+        await asyncio.sleep(0.05)
+
+@Client.on_callback_query(filters.regex(r"^revoke_(.+)"))
+async def revoke_payment(client, query):
+    if query.from_user.id not in config.Config.ADMIN_IDS: return
+    nick = query.matches[0].group(1)
+    u = await db.get_user_by_nickname(nick)
+    if u:
+        await aio_reply(
+            u['user_id'],
+            "<blockquote>"
+            "🚨 <b>Payment Verification Failed:</b> Your VIP upgrade request was declined. Reason: Invalid/Fake screenshot or payment not received."
+            "</blockquote>"
+        )
+    try:
+        await query.answer("Request Revoked", show_alert=True)
+    except: pass
+    await edit_raw_api_message(query.message.chat.id, query.message.id, "<blockquote>❌ <b>Request Revoked by Admin</b></blockquote>")
+
+@Client.on_callback_query(filters.regex(r"^addprem_(.+)"))
+async def add_prem_payment(client, query):
+    if query.from_user.id not in config.Config.ADMIN_IDS: return
+    nick = query.matches[0].group(1)
+    config.admin_states[query.from_user.id] = {"step": "addprem_custom", "target_nick": nick}
+    await aio_reply(
+        query.message.chat.id,
+        "<blockquote>"
+        f"⏳ <b>Adding Premium to #{nick}</b>\n"
+        "Please type the duration (e.g., 7d, 30d, 1M, 1y):"
+        "</blockquote>"
+    )
+    try:
+        await query.answer("Enter duration in chat.")
+    except: pass
+
 @Client.on_callback_query(filters.regex(r"^cancel_action$"))
 async def cancel_action(client, query):
     user_id = query.from_user.id
     if user_id in config.admin_states:
         config.admin_states.pop(user_id, None)
+    if user_id in config.pending_payments:
+        del config.pending_payments[user_id]
     url = f"https://api.telegram.org/bot{config.Config.BOT_TOKEN}/editMessageText"
     payload = {
         "chat_id": query.message.chat.id,
         "message_id": query.message.id,
-        "text": "<blockquote>✅ <b>Report workflow cancelled securely.</b></blockquote>",
+        "text": "<blockquote>✅ <b>Workflow cancelled securely.</b></blockquote>",
         "parse_mode": "HTML"
     }
     async with aiohttp.ClientSession() as session:
@@ -758,6 +843,27 @@ async def master_admin_state_handler(client, message):
                 )
             except Exception as e:
                 logger.warning(f"Failed to notify user {target_id} of mute via state handler: {e}")
+        config.admin_states.pop(uid, None)
+
+    elif state.get("step") == "addprem_custom":
+        dur_str = message.text.strip()
+        nick = state["target_nick"]
+        dur = parse_duration(dur_str)
+        if not dur:
+            await aio_reply(uid, "<blockquote>❌ <b>Invalid duration format. Cancelled.</b></blockquote>")
+        else:
+            u = await db.get_user_by_nickname(nick)
+            if u:
+                await users.update_one({"user_id": u['user_id']}, {"$set": {"is_premium": True, "premium_expiry": datetime.now() + dur}})
+                await aio_reply(uid, f"<blockquote>✅ <b>Premium added to #{nick} for {dur_str}</b></blockquote>")
+                try:
+                    await client.send_message(
+                        u['user_id'],
+                        "<blockquote>💎 <b>VIP Premium Activated successfully!</b></blockquote>"
+                    )
+                except: pass
+            else:
+                await aio_reply(uid, "<blockquote>❌ <b>User not found.</b></blockquote>")
         config.admin_states.pop(uid, None)
 
     elif state.get("step") == "tut_1":
