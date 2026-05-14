@@ -167,6 +167,8 @@ async def help_cmd(client, message):
             "✦ /ref on/off ➤ Referral config\n"
             "✦ /get_buttn on/off ➤ Media history\n"
             "✦ /tutorial on/off ➤ Video guide\n"
+            "✦ /setqr ➤ Set payment QR & UPI\n"
+            "✦ /delqr ➤ Delete payment QR\n"
             "\n"
             "</blockquote>"
         )
