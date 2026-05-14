@@ -7,7 +7,7 @@ from datetime import datetime
 from pyrogram import Client, filters
 import config
 from database import db, users
-from utils import get_uptime, parse_duration, edit_raw_api_message
+from utils import get_uptime, parse_duration, edit_raw_api_message, send_raw_api_media, send_raw_api_message
 
 logger = logging.getLogger("MANAGER")
 
@@ -76,19 +76,32 @@ async def confirm_buy_vip(client, query):
     user = await db.get_user(user_id)
     if not user: return
 
+    bot_config = await db.get_bot_settings()
+    upi_id = bot_config.get("upi_id", "Not Configured")
+    qr_file_id = bot_config.get("qr_file_id")
+
     config.pending_payments[user_id] = time.time()
 
     payment_text = (
         "<blockquote>"
-        "💳 <b>VIP PURCHASE INITIATED</b>\n"
+        "💳 <b>VIP purchase initiated</b>\n"
         "\n"
         "Please make the payment using the details below:\n"
-        "<b>UPI ID:</b> <code>admin@upi</code>\n"
+        f"<b>UPI ID:</b> <code>{upi_id}</code>\n"
         "\n"
         "<i>⚠️ Send the payment screenshot (Image) here within 5 minutes. Do not send text or links.</i>"
         "</blockquote>"
     )
-    await edit_raw_api_message(query.message.chat.id, query.message.id, payment_text)
+    
+    try:
+        await query.message.delete()
+    except:
+        pass
+
+    if qr_file_id:
+        await send_raw_api_media(query.message.chat.id, qr_file_id, "photo", caption=payment_text)
+    else:
+        await aio_reply(query.message.chat.id, payment_text)
 
     display_name = f"#{user['nickname'].upper()}"
     chat_text = (
@@ -179,6 +192,30 @@ async def cancel_cmd(client, message):
             "</blockquote>", 
             message.id
         )
+
+@Client.on_message(filters.command("setqr") & filters.user(config.Config.ADMIN_IDS))
+async def setqr_cmd(client, message):
+    config.admin_states[message.from_user.id] = {"step": "qr_step_1"}
+    await aio_reply(
+        message.chat.id,
+        "<blockquote>"
+        "📷 <b>QR setup initiated</b>\n"
+        "\n"
+        "Please send the QR Code image (Photo) for payments."
+        "</blockquote>"
+    )
+
+@Client.on_message(filters.command("delqr") & filters.user(config.Config.ADMIN_IDS))
+async def delqr_cmd(client, message):
+    await db.update_settings({"qr_file_id": None, "upi_id": None})
+    await aio_reply(
+        message.chat.id,
+        "<blockquote>"
+        "🗑️ <b>QR removed</b>\n"
+        "\n"
+        "Payment QR and UPI details have been deleted successfully."
+        "</blockquote>"
+    )
 
 @Client.on_callback_query(filters.regex(r"^report_(.+)"))
 async def handle_report(client, query):
@@ -776,15 +813,48 @@ async def manage_tutorial(client, message):
             "</blockquote>"
         )
 
-@Client.on_message(filters.text & filters.private & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial", "cancel"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
+@Client.on_message((filters.text | filters.photo) & filters.private & filters.user(config.Config.ADMIN_IDS) & ~filters.command(["start", "help", "rem_prem", "restrict", "pmdlt", "add", "ref", "ban", "unban", "mute", "unmute", "stats", "wait", "broadcast", "plans", "me", "register", "referral", "chat", "get_buttn", "tutorial", "cancel", "setqr", "delqr"]) & ~filters.regex("^(GET MEDIA HISTORY)$"))
 async def master_admin_state_handler(client, message):
     uid = message.from_user.id
     if uid not in config.admin_states: return
     state = config.admin_states[uid]
 
+    msg_text = message.text.strip() if message.text else ""
+
+    if state.get("step") == "qr_step_1":
+        if not message.photo:
+            return await aio_reply(uid, "<blockquote>❌ <b>Invalid input:</b> Please send a valid image (Photo).</blockquote>")
+        state["qr_file_id"] = message.photo.file_id
+        state["step"] = "qr_step_2"
+        await aio_reply(
+            uid,
+            "<blockquote>"
+            "✅ <b>Image received</b>\n"
+            "\n"
+            "Now, please send the UPI ID (Text) associated with this QR."
+            "</blockquote>"
+        )
+        return
+
+    elif state.get("step") == "qr_step_2":
+        if not msg_text:
+            return await aio_reply(uid, "<blockquote>❌ <b>Invalid input:</b> Please send valid text.</blockquote>")
+        await db.update_settings({"qr_file_id": state["qr_file_id"], "upi_id": msg_text})
+        config.admin_states.pop(uid, None)
+        await aio_reply(
+            uid,
+            "<blockquote>"
+            "✅ <b>Setup complete</b>\n"
+            "\n"
+            "Payment QR and UPI details are now live."
+            "</blockquote>"
+        )
+        return
+
     if state.get("step") == "mute_1":
+        if not msg_text: return
         try:
-            days = int(message.text.strip())
+            days = int(msg_text)
             state["days"] = days
             state["step"] = "mute_2"
             buttons = [[{"text": "Cancel Report", "callback_data": "cancel_action", "style": "danger"}]]
@@ -804,7 +874,8 @@ async def master_admin_state_handler(client, message):
             )
 
     elif state.get("step") == "mute_2":
-        reason = message.text.strip()
+        if not msg_text: return
+        reason = msg_text
         nick = state["target_nick"]
         days = state["days"]
 
@@ -846,7 +917,8 @@ async def master_admin_state_handler(client, message):
         config.admin_states.pop(uid, None)
 
     elif state.get("step") == "addprem_custom":
-        dur_str = message.text.strip()
+        if not msg_text: return
+        dur_str = msg_text
         nick = state["target_nick"]
         dur = parse_duration(dur_str)
         if not dur:
@@ -867,7 +939,8 @@ async def master_admin_state_handler(client, message):
         config.admin_states.pop(uid, None)
 
     elif state.get("step") == "tut_1":
-        link = message.text
+        if not msg_text: return
+        link = msg_text
         await db.update_settings({"tutorial_link": link})
         config.admin_states.pop(uid, None)
         await aio_reply(
@@ -879,8 +952,9 @@ async def master_admin_state_handler(client, message):
         )
 
     elif state.get("step") == "ref_1":
+        if not msg_text: return
         try:
-            state["count"] = int(message.text)
+            state["count"] = int(msg_text)
             state["step"] = "ref_2"
             await aio_reply(
                 uid, 
@@ -896,7 +970,8 @@ async def master_admin_state_handler(client, message):
                 "</blockquote>"
             )
     elif state.get("step") == "ref_2":
-        state["text"] = message.text
+        if not msg_text: return
+        state["text"] = msg_text
         state["step"] = "ref_3"
         await aio_reply(
             uid, 
@@ -905,8 +980,9 @@ async def master_admin_state_handler(client, message):
             "</blockquote>"
         )
     elif state.get("step") == "ref_3":
-        if parse_duration(message.text):
-            await db.update_settings({"ref_system": True, "ref_count": state["count"], "ref_text": state["text"], "ref_time_str": message.text})
+        if not msg_text: return
+        if parse_duration(msg_text):
+            await db.update_settings({"ref_system": True, "ref_count": state["count"], "ref_text": state["text"], "ref_time_str": msg_text})
             config.admin_states.pop(uid, None)
             await aio_reply(
                 uid, 
