@@ -31,15 +31,19 @@ async def aio_reply(chat_id, text, reply_to=None, buttons=None):
                 return None
 
 async def broadcast_warning(target_nick, action, admin_id, reason):
-    admin_user = await db.get_user(admin_id)
-    admin_nick = admin_user['nickname'] if admin_user else "System command"
+    if admin_id in config.Config.ADMIN_IDS:
+        admin_nick = config.Config.ADMIN_GOD_NAME
+    else:
+        admin_user = await db.get_user(admin_id)
+        admin_nick = f"#{admin_user['nickname']}" if admin_user else "System command"
+    
     text = (
         "<blockquote>"
         "🚨 <b>𝔾𝕃𝕆𝔹𝔸𝕃 𝕊𝔼ℂ𝕌ℝ𝕀𝕋𝕐 𝔸𝕃𝔼ℝ𝕋</b>\n"
         "\n"
         f"👤 <b>Target user:</b> #{target_nick}\n"
         f"🔨 <b>Punishment:</b> {action}\n"
-        f"👮‍♂️ <b>Action by:</b> #{admin_nick}\n"
+        f"👮‍♂️ <b>Action by:</b> {admin_nick}\n"
         f"📝 <b>Reason:</b> {reason}"
         "</blockquote>"
     )
