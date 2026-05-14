@@ -1,6 +1,7 @@
 import re
 import time
 import logging
+import asyncio
 import aiohttp
 from datetime import datetime, timedelta
 import config
@@ -41,14 +42,19 @@ async def send_raw_api_message(chat_id, text, buttons=None, reply_markup=None):
          payload["reply_markup"] = reply_markup
 
     async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(url, json=payload) as response:
-                if response.status != 200:
-                    logger.error(f"API Error (sendMessage): {await response.text()}")
-                return await response.json()
-        except Exception as e:
-            logger.error(f"Exception in send_raw_api_message: {str(e)}", exc_info=True)
-            return None
+        while True:
+            try:
+                async with session.post(url, json=payload) as response:
+                    if response.status == 429:
+                        r = await response.json()
+                        await asyncio.sleep(r.get("parameters", {}).get("retry_after", 3))
+                        continue
+                    if response.status != 200:
+                        logger.error(f"API Error (sendMessage): {await response.text()}")
+                    return await response.json()
+            except Exception as e:
+                logger.error(f"Exception in send_raw_api_message: {str(e)}", exc_info=True)
+                return None
 
 async def edit_raw_api_message(chat_id, message_id, text, buttons=None):
     url = f"https://api.telegram.org/bot{config.Config.BOT_TOKEN}/editMessageText"
@@ -63,14 +69,25 @@ async def edit_raw_api_message(chat_id, message_id, text, buttons=None):
         payload["reply_markup"] = {"inline_keyboard": buttons}
 
     async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(url, json=payload) as response:
-                if response.status != 200:
-                    logger.error(f"API Error (editMessageText): {await response.text()}")
-                return await response.json()
-        except Exception as e:
-            logger.error(f"Exception in edit_raw_api_message: {str(e)}", exc_info=True)
-            return None
+        while True:
+            try:
+                async with session.post(url, json=payload) as response:
+                    if response.status == 429:
+                        r = await response.json()
+                        await asyncio.sleep(r.get("parameters", {}).get("retry_after", 3))
+                        continue
+                    if response.status == 400:
+                        txt = await response.text()
+                        if "message is not modified" in txt:
+                            return await response.json()
+                        logger.error(f"API Error (editMessageText): {txt}")
+                        return await response.json()
+                    if response.status != 200:
+                        logger.error(f"API Error (editMessageText): {await response.text()}")
+                    return await response.json()
+            except Exception as e:
+                logger.error(f"Exception in edit_raw_api_message: {str(e)}", exc_info=True)
+                return None
 
 async def copy_raw_api_message(chat_id, from_chat_id, message_id, caption=None, buttons=None, protect_content=False):
     url = f"https://api.telegram.org/bot{config.Config.BOT_TOKEN}/copyMessage"
@@ -87,14 +104,19 @@ async def copy_raw_api_message(chat_id, from_chat_id, message_id, caption=None, 
         payload["reply_markup"] = {"inline_keyboard": buttons}
 
     async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(url, json=payload) as response:
-                if response.status != 200:
-                    logger.error(f"API Error (copyMessage): {await response.text()}")
-                return await response.json()
-        except Exception as e:
-            logger.error(f"Exception in copy_raw_api_message: {str(e)}", exc_info=True)
-            return None
+        while True:
+            try:
+                async with session.post(url, json=payload) as response:
+                    if response.status == 429:
+                        r = await response.json()
+                        await asyncio.sleep(r.get("parameters", {}).get("retry_after", 5))
+                        continue
+                    if response.status != 200:
+                        logger.error(f"API Error (copyMessage): {await response.text()}")
+                    return await response.json()
+            except Exception as e:
+                logger.error(f"Exception in copy_raw_api_message: {str(e)}", exc_info=True)
+                return None
 
 async def send_raw_api_media(chat_id, media_id, media_type, caption=None, buttons=None, protect_content=False):
     endpoint = "sendPhoto" if media_type == "photo" else "sendVideo"
@@ -111,14 +133,19 @@ async def send_raw_api_media(chat_id, media_id, media_type, caption=None, button
         payload["reply_markup"] = {"inline_keyboard": buttons}
 
     async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(url, json=payload) as response:
-                if response.status != 200:
-                    logger.error(f"API Error ({endpoint}): {await response.text()}")
-                return await response.json()
-        except Exception as e:
-            logger.error(f"Exception in send_raw_api_media: {str(e)}", exc_info=True)
-            return None
+        while True:
+            try:
+                async with session.post(url, json=payload) as response:
+                    if response.status == 429:
+                        r = await response.json()
+                        await asyncio.sleep(r.get("parameters", {}).get("retry_after", 5))
+                        continue
+                    if response.status != 200:
+                        logger.error(f"API Error ({endpoint}): {await response.text()}")
+                    return await response.json()
+            except Exception as e:
+                logger.error(f"Exception in send_raw_api_media: {str(e)}", exc_info=True)
+                return None
 
 def start_keyboard(is_ref_on=False, t_link=None):
     buttons = [
