@@ -30,6 +30,8 @@ async def plans_cmd(client, message):
 @Client.on_message(filters.command("me") & filters.private)
 async def me_cmd(client, message):
     user_id = message.from_user.id
+    is_admin = user_id in config.Config.ADMIN_IDS
+    
     user = await db.get_user(user_id)
     if not user: return
 
@@ -39,12 +41,14 @@ async def me_cmd(client, message):
     if user.get('premium_expiry'): 
         expiry_info = f"📅 <b>Expiry date:</b> <code>{user['premium_expiry'].strftime('%Y-%m-%d %H:%M')}</code>\n"
 
+    display_name = config.Config.ADMIN_GOD_NAME if is_admin else f"#{user['nickname']}"
+
     me_msg = (
         "<blockquote>"
         f"📊 <b>User profile dashboard</b>\n"
         f"\n"
-        f"👤 <b>Nickname:</b> <code>#{user['nickname']}</code>\n"
-        f"🆔 <b>User ID:</b> <code>{user_id}</code>\n"
+        f"👤 <b>Nickname:</b> <code>{display_name}</code>\n"
+        f"🆔 <b>User ID:</b> <code>HIDDEN (ANONYMOUS)</code>\n"
         f"⭐ <b>Account:</b> {status}\n"
         f"\n"
         f"📈 <b>Total media sent:</b> <code>{user.get('total_sent', 0)}</code>\n"
