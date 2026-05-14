@@ -2,30 +2,29 @@ from pyrogram import Client, filters
 from datetime import datetime
 import config
 from database import db
-from utils import get_time_left
+from utils import get_time_left, send_raw_api_message
 
 @Client.on_message(filters.command("plans") & filters.private)
 async def plans_cmd(client, message):
     text = (
         "<blockquote>"
-        "💎 <b>VIP premium vs standard free</b>\n"
+        "💎 <b>VIP PREMIUM PLANS</b> 💎\n"
         "\n"
-        "❖ <b>Standard Free Tier</b> ❖\n"
-        "✦ 30-second delay for media delivery\n"
-        "✦ Standard queue priority\n"
-        "✦ Activity required: 1 Media Batch = 30 Minutes Access (Max 24H)\n"
+        "<b>[1] WEEKLY ELITE (7 Days) - ₹30</b>\n"
+        "✦ 7 Days of Uninterrupted Access\n"
+        "✦ Zero-delay priority delivery (≈10s)\n"
+        "✦ No media sharing required to stay active\n"
         "\n"
-        "👑 <b>VIP Premium Tier</b> 👑\n"
-        "✦ Unlimited, unconditional access\n"
-        "✦ Zero-delay priority delivery (≈10 seconds)\n"
-        "✦ No need to share media to stay active\n"
-        "✦ Access to exclusive VIP group & mega folder (100K+ files)\n"
+        "<b>[2] MONTHLY SUPREME (30 Days) - ₹150</b>\n"
+        "✦ 30 Days of Complete Freedom\n"
+        "✦ All Weekly Elite benefits included\n"
+        "✦ Best value for long-term users\n"
         "\n"
-        "💰 <b>Payment mode:</b> UPI Only\n"
-        "📩 <b>Join now:</b> <a href='https://t.me/roomjoinus'>@roomjoinus</a>"
+        "💰 <b>Payment Mode:</b> UPI Only\n"
         "</blockquote>"
     )
-    await message.reply(text, disable_web_page_preview=True)
+    buttons = [[{"text": "💳 BUY VIP PLAN", "callback_data": "buy_vip", "style": "primary"}]]
+    await send_raw_api_message(message.chat.id, text, buttons=buttons)
 
 @Client.on_message(filters.command("me") & filters.private)
 async def me_cmd(client, message):
