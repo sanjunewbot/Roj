@@ -9,6 +9,7 @@ from pyrogram.errors import FloodWait
 
 import config
 from database import db
+from utils import get_time_left
 
 async def aio_reply(chat_id, text, reply_to=None):
     url = f"https://api.telegram.org/bot{config.Config.BOT_TOKEN}/sendMessage"
@@ -125,7 +126,13 @@ async def chat_handler(client, message):
                 message.id
             )
 
+    if is_admin or user.get('is_premium'):
+        time_tag = "[⏳ ∞ VIP]"
+    else:
+        time_tag = f"[⏳ {get_time_left(user.get('active_until', datetime.now()))}]"
+
     display_name = config.Config.ADMIN_GOD_NAME if is_admin else f"#{user['nickname']}"
+    display_name_with_time = f"{display_name} <b>{time_tag}</b>"
 
     target_nick = None
     if message.reply_to_message and message.reply_to_message.text:
@@ -137,9 +144,9 @@ async def chat_handler(client, message):
             target_nick = f"#{match.group(1)}"
 
     if target_nick:
-        chat_text = f"💬 <b>{display_name}</b> ➦ <b>{target_nick}</b>\n\n{message.text}"
+        chat_text = f"💬 {display_name_with_time} ➦ <b>{target_nick}</b>\n\n{message.text}"
     else:
-        chat_text = f"💬 <b>{display_name}</b>\n\n{message.text}"
+        chat_text = f"💬 {display_name_with_time}\n\n{message.text}"
 
     all_users = await db.get_all_users()
 
