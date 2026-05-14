@@ -26,8 +26,30 @@ class Config:
     MUTE_DURATION_HOURS = 12
     MUTE_PENALTY_MINUTES = 2
 
-    ADJECTIVES = ["Foggy", "Silent", "Hidden", "Dark", "Ghost", "Mystic", "Shadow", "Secret", "Neon", "Cyber", "Void", "Rogue", "Phantom"]
-    NOUNS = ["Wolf", "Raven", "Sniper", "Hunter", "Storm", "Ninja", "Phantom", "Dragon", "Specter", "Viper", "Reaper", "Blade", "Titan"]
+    ADJECTIVES = [
+    "Desi", "Punjab", "Mumbai", "Delhi", "Royal", "Gabru", "Jhakaas",
+    "Bindaas", "Nawab", "Badshah", "Sultan", "Pataka", "Shikari",
+    "Toofan", "Jatt", "Sarpanch", "Khalnayak", "Sherdil", "Dabang",
+    "Raftaar", "Ziddi", "Gabbar", "Veer", "Yoddha", "Singham",
+    "Bhau", "Tapori", "Mast", "Dhakad", "Chulbul", "Akhanda",
+    "Rangeela", "Jhakkas", "Lafandar", "Teekha", "Mirchi",
+    "Baazigar", "Junglee", "Tashan", "Bindass", "Rangbaaz",
+    "Befikra", "Diler", "Hindustani", "Patiala", "Ludhiana",
+    "Haryana", "Rajasthani", "Bambaiya", "Banarasi", "Lucknawi"
+]
+
+NOUNS = [
+    "Jatt", "Gabru", "Sher", "Baaz", "Yoddha", "Rakshak",
+    "Toofan", "Aatank", "Pataka", "Sultan", "Badshah",
+    "Nawab", "Bhau", "Tapori", "Daku", "Khalnayak",
+    "Mirchi", "Raftaar", "Bijli", "Bullet", "Shera",
+    "Gabbar", "Don", "Sarpanch", "Launda", "Munda",
+    "Veer", "Pahalwan", "Fauji", "Sipahi", "Raja",
+    "Maharaja", "Thakur", "Pandit", "Chaudhary", "Patel",
+    "Naik", "Banda", "Tiger", "Singham", "Baazigar",
+    "Rider", "Driver", "Raider", "Player", "Mastana",
+    "Bawandar", "Diler", "Rangebaaz", "Lafandar", "Jhakkas"
+]
     ADMIN_GOD_NAME = "🜲 𝕲𝖔𝖉 𝕺𝖋 𝕭𝖔𝖙 🜲"
 
     if BOT_TOKEN == "8660092184:AAEBYIU6lBaVvS8M6MK372UU9qDCExDNYAM":
