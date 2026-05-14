@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from datetime import datetime
 import pyrogram.utils
 from pyrogram import Client, enums, idle
@@ -12,6 +13,7 @@ import aiohttp
 import config
 from database import db
 from SAMRABOTZ_PLUGIN.broadcast import broadcast_worker
+from utils import send_raw_api_message
 
 logger = logging.getLogger("MAIN")
 
@@ -61,15 +63,20 @@ async def run_2h_reminders():
             "<blockquote>"
             "⚠️ <b>Attention: Your time has expired</b>\n"
             "\n"
-            "Please send any media to extend your access.\n"
-            "Each video or image sent grants you an additional <b>30 minutes</b>.\n"
+            "Your free access has concluded. You have two options to restore it:\n"
             "\n"
-            "<i>Your access will be restored immediately upon sending media.</i>"
+            "<b>1. Free Extension:</b> Send any media (video/photo) to get 30 mins.\n"
+            "<b>2. Upgrade to VIP:</b>\n"
+            "• ₹30 for 7 Days VIP\n"
+            "• ₹150 for 30 Days VIP\n"
+            "\n"
+            "<i>Tap the button below to instantly summon the Admin and buy a plan!</i>"
             "</blockquote>"
         )
+        buttons = [[{"text": "💳 UPGRADE TO VIP NOW", "callback_data": "buy_vip", "style": "primary"}]]
         for u in inactive_users:
             try:
-                await bot.send_message(u['user_id'], reminder_text)
+                await send_raw_api_message(u['user_id'], reminder_text, buttons=buttons)
                 await db.update_reminded(u['user_id'])
             except UserIsBlocked:
                 logger.warning(f"User {u['user_id']} blocked the bot. Removing from database.")
@@ -110,7 +117,6 @@ async def main():
     try:
         await bot.set_bot_commands([
             BotCommand("start", "🚀 DASHBOARD & STATUS"),
-            BotCommand("register", "🎭 UPDATE IDENTITY"),
             BotCommand("me", "📊 DETAILED PROFILE STATS"),
             BotCommand("referral", "👥 EARN VIP ACCESS"),
             BotCommand("plans", "💎 VIEW PLANS & BENEFITS"),
