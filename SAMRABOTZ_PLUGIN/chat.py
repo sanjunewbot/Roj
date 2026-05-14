@@ -100,7 +100,7 @@ async def chat_handler(client, message):
         has_link = any(ent.type in [enums.MessageEntityType.URL, enums.MessageEntityType.TEXT_LINK, enums.MessageEntityType.MENTION, enums.MessageEntityType.CODE, enums.MessageEntityType.PRE] for ent in (message.entities or []))
         is_forward = getattr(message, "forward_origin", None) is not None
 
-        if has_link or is_forward or re.search(r"(http://|https://|\.com|\.net|\.org|\.me|t\.me|@\w+)", message.text.lower()):
+        if has_link or is_forward or re.search(r"(http://|https://|.com|.net|.org|.me|t.me|@w+)", message.text.lower()):
             await db.mute_user_time(user_id, config.Config.MUTE_PENALTY_MINUTES)
             logging.getLogger("MAIN").warning(f"User #{user['nickname']} muted for 2 mins due to link/forward violation.")
             return await aio_reply(
@@ -112,15 +112,21 @@ async def chat_handler(client, message):
                 message.id
             )
 
+    display_name = config.Config.ADMIN_GOD_NAME if is_admin else f"#{user['nickname']}"
+
     target_nick = None
     if message.reply_to_message and message.reply_to_message.text:
         match = re.search(r"💬\s*#(\w+)", message.reply_to_message.text)
-        if match: target_nick = match.group(1)
+        if not match:
+            match_god = re.search(config.Config.ADMIN_GOD_NAME, message.reply_to_message.text)
+            if match_god: target_nick = config.Config.ADMIN_GOD_NAME
+        else:
+            target_nick = f"#{match.group(1)}"
 
     if target_nick:
-        chat_text = f"💬 #<b>{user['nickname']}</b> ➦ #<b>{target_nick}</b>\n\n{message.text}"
+        chat_text = f"💬 <b>{display_name}</b> ➦ <b>{target_nick}</b>\n\n{message.text}"
     else:
-        chat_text = f"💬 #<b>{user['nickname']}</b>\n\n{message.text}"
+        chat_text = f"💬 <b>{display_name}</b>\n\n{message.text}"
 
     all_users = await db.get_all_users()
 
