@@ -37,11 +37,11 @@ class Config:
 
     ADMIN_IDS = [7893435873]
 
-    FORCE_SUB_CHANNEL = "-1003843949677"
+    FORCE_SUB_CHANNEL = "-1003562811332"
 
     PENDING_RQUST_CHNL_ID = os.environ.get(
         "PENDING_RQUST_CHNL_ID",
-        "-1004047659547"
+        "-1004427611931"
     )
 
     PORT = int(os.environ.get("PORT", 8080))
