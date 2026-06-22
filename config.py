@@ -20,7 +20,7 @@ class Config:
 
     BOT_TOKEN = os.environ.get(
         "BOT_TOKEN",
-        "8660092184:AAEBYIU6lBaVvS8M6MK372UU9qDCExDNYAM"
+        "8640588468:AAG_8Yrq9qTnXMi6M6gNSpkI4BwaUYUg14w"
     )
 
     MONGO_URL = os.environ.get(
