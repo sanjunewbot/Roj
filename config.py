@@ -35,7 +35,7 @@ class Config:
         "-1003959488076"
     )
 
-    ADMIN_IDS = [7893435873]
+    ADMIN_IDS = [8002345109]
 
     FORCE_SUB_CHANNEL = "-1003562811332"
 
