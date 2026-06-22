@@ -55,49 +55,33 @@ class Config:
     MUTE_PENALTY_MINUTES = 2
 
     ADJECTIVES = [
-    "Desi", "Punjab", "Mumbai", "Delhi", "Royal", "Gabru",
-    "Jhakaas", "Bindaas", "Nawab", "Badshah", "Sultan",
-    "Pataka", "Shikari", "Toofan", "Jatt", "Sarpanch",
-    "Khalnayak", "Sherdil", "Dabang", "Raftaar", "Ziddi",
-    "Gabbar", "Veer", "Yoddha", "Singham", "Bhau",
-    "Tapori", "Mast", "Dhakad", "Chulbul", "Akhanda",
-    "Rangeela", "Jhakkas", "Lafandar", "Teekha", "Mirchi",
-    "Baazigar", "Junglee", "Tashan", "Bindass",
-    "Rangbaaz", "Befikra", "Diler", "Hindustani",
-    "Patiala", "Ludhiana", "Haryana", "Rajasthani",
-    "Bambaiya", "Banarasi", "Lucknawi",
+    "Shadow", "Dark", "Ghost", "Phantom", "Nova", "Cyber", "Elite", "Royal", "Alpha", "Omega", "Blaze", "Storm", "Frost", "Venom", "Titan", "Hyper", "Inferno", "Mystic", "Quantum", "Vortex", "Neon", "Silent", "Hidden", "Prime", "Apex", "Lunar", "Solar", "Crimson", "Obsidian", "Eclipse", "Thunder", "Rapid", "Turbo", "Ultra", "Zero", "Matrix", "Pixel", "Digital", "Astral", "Cosmic", "Atomic", "Velocity", "Fusion", "Spectral", "Legend", "Supreme", "Dynamic", "Infinite", "Genesis", "Nexus" 
 
     # Punjabi
-    "Sidhu", "Sandhu", "Gill", "Brar", "Cheema",
-    "Dhillon", "Maan", "Grewal", "Bains", "Sekhon",
-    "Randhawa", "Pannu", "Bajwa", "Aulakh", "Waraich",
-    "Majhail", "Doaba", "Malwa", "Pindwala",
-    "TruckanWala", "BulletWala", "Patialashahi",
-    "Gabroo", "Jigrewala",
-    "PindanWala", "CanadaWala", "MohaliWala",
-    "ChandigarhWala", "Taurwala", "Kabza", "Gedi",
-    "FanneyKhan", "Attwadi", "Yamla", "Pendu",
-    "JattLife", "Kaim", "Velly", "Zaildar",
-    "ProudPunjabi", "JattDa", "Nashedi", "LaalPari",
-    "Pistol", "315Wala", "Dunali", "TopBoy",
-    "Mucchad", "Fukra", "Asla", "Rakaane",
-    "PindKing", "Ghaint", "Jazbati", "Legend",
-    "TibeyanDa", "FordWala", "ScorpioWala",
+    "Arclight", "Nightfall", "Voidwalker", "Starborn", "Ironclad",
+"Skyforge", "Moonshade", "Frostbite", "Embercore", "Steelwing",
+"Blackout", "Stormborn", "Firestorm", "Ashen", "Silverfang",
+"Bloodmoon", "Darkstar", "Lightbringer", "Nether", "Riftwalker",
+"Cloudstrike", "Stoneheart", "Sunflare", "Deepwave", "Wildfire",
+"Nightshade", "Skyrunner", "Dreadnought", "Windrider", "Voidfang",
+"Thunderstrike", "Soulforge", "Icebreaker", "Starfall", "Shadowbane",
+"Ghostblade", "Ironwolf", "Firebrand", "Moonfang", "Stormcaller",
+"Frostwing", "Dragonfire", "Voidstorm", "Skybreaker", "Solaris",
+"Lunaris", "Eternis", "Aether", "Nebula", "Orbitron",
+"Chronos", "Zenith", "Vertex", "Pulse", "Cipher",
+"Helix", "Catalyst", "Paradox", "Mirage", "Tempest"
 
     # Hindi / North Indian
-    "Pandey", "Tiwari", "Sharma", "Dubey", "Yadav",
-    "Rajput", "Thakur", "Chauhan", "Sisodiya",
-    "Rathore", "Tanwar", "Solanki", "Chandel",
-    "Maurya", "Bisht", "Negi", "Rawat",
-    "Bihari", "UPWala", "Haryanvi", "Desiwala",
-    "Kanpuriya", "Allahabadi", "Banarsi",
-    "Jaipuri", "Bhopali", "Lucknowi", "Dehati",
-    "Kattar", "Diler", "Bhaukaal", "Aashiq",
-    "Tapasya", "NetaJi", "Khiladi", "Chora",
-    "Tau", "Khandani", "Sanskari", "Nawabi",
-    "Badmash", "Lathmaar", "Berozgaar", "GymBoy",
-    "Kamina", "Aawara", "HeroNo1", "Chhapri",
-    "DilerBoy", "MastMoula", "Gunda", "Kaleshi",
+    "Alexander", "Victor", "Leon", "Damien", "Adrian",
+"Sebastian", "Nathan", "Ethan", "Lucas", "Julian",
+"Arthur", "Vincent", "Felix", "Oscar", "Caleb",
+"Miles", "Silas", "Roman", "Theo", "Maxwell",
+"Phoenix", "Atlas", "Orion", "Hunter", "Logan",
+"Blake", "Carter", "Parker", "Zane", "Jaxon",
+"Ryder", "Axel", "Mason", "Liam", "Noah",
+"Elijah", "Aiden", "Kai", "Finn", "Xavier",
+"Leo", "Jasper", "Rowan", "Asher", "Declan",
+"Ezra", "Wyatt", "Nolan", "Tristan", "Grayson"
 
     # Extra Stylish / Attitude
     "Danger", "Monster", "Psycho", "Savage",
@@ -113,42 +97,49 @@ class Config:
 ]
 
     NOUNS = [
-    "Jatt", "Gabru", "Sher", "Baaz", "Yoddha",
-    "Rakshak", "Toofan", "Aatank", "Pataka",
-    "Sultan", "Badshah", "Nawab", "Bhau",
-    "Tapori", "Daku", "Khalnayak", "Mirchi",
-    "Raftaar", "Bijli", "Bullet", "Shera",
-    "Gabbar", "Don", "Sarpanch", "Launda",
-    "Munda", "Veer", "Pahalwan", "Fauji",
-    "Sipahi", "Raja", "Maharaja", "Thakur",
-    "Pandit", "Chaudhary", "Patel", "Naik",
-    "Banda", "Tiger", "Singham", "Baazigar",
-    "Rider", "Driver", "Raider", "Player",
-    "Mastana", "Bawandar", "Diler",
-    "Rangebaaz", "Lafandar", "Jhakkas",
+    "Aetherix", "Nyxora", "Velcron", "Zerith", "Kaelix",
+"Vortexa", "Dravix", "Xypher", "Noctaris", "Abylix",
+"Zephiron", "Cryonix", "Vexaris", "Obscyra", "Nexora",
+"Thalor", "Draxen", "Krylos", "Vorlix", "Azryth",
+"Solvex", "Mythron", "Elarix", "Ravixor", "Xandor",
+"Veltrix", "Zorvex", "Nythera", "Kairox", "Veyron",
+"Drakonis", "Sylvex", "Auronix", "Zenthar", "Luxaris",
+"Pyronex", "Valthor", "Xerion", "Kryvex", "Orlax",
+"Zenovix", "Arcturon", "Duskara", "Elystrix", "Vexalon",
+"Thornix", "Nebulor", "Axionis", "Zyphora", "Morvex",
+"Rynox", "Veloria", "Kryndor", "Astrax", "Xyloris",
+"Vortrix", "Nycron", "Zevoria", "Mythrax", "Ebonix"
 
     # Punjabi Style
-    "Sardaar", "Punjabiyan",
-    "Majhail", "Doabia", "Malwai", "PindBoy",
-    "TruckDriver", "BulletRider", "Jigrebaaz",
-    "SherPunjab", "JattDaMunda", "PindKing",
-    "PatialaPeg", "GabrooSher", "Kisaan",
-    "Zamindar", "AslaBoy", "FordBoy", "ScorpioKing",
-    "GediRoute", "KabzaKing", "TaurMunda",
-    "CanadaReturn", "PindAala", "PenduJatt",
-    "Mucchad", "DunaliBoy", "315Gang",
-    "GhaintMunda", "JattLife", "KaimSardaar",
+    "Brimlock", "Cindrax", "Duskveil", "Etherforge", "Flintcore",
+"Gravion", "Hexaris", "Ignivar", "Jadewing", "Korvax",
+"Luxmere", "Mirethorn", "Nighthollow", "Oakspire", "Pyrelord",
+"Quorin", "Runeblade", "Skylance", "Thornwake", "Umbrage",
+"Verdantor", "Wyrmcrest", "Xalor", "Yonderfall", "Zarkon",
+"Blackmarsh", "Crowhaven", "Driftwood", "Ebonreach", "Farshade",
+"Gloomhart", "Hollowmere", "Ivorybane", "Jetstream", "Kingshade",
+"Longstride", "Mournvale", "Northforge", "Oakenfall", "Palecrest",
+"Quickthorn", "Redharbor", "Starhaven", "Truewind", "Umberfall",
+"Valeguard", "Whisperwind", "Xenfall", "Yellowcrest", "Zincroft",
+"Ashgrove", "Brightmoor", "Coldwater", "Dawnridge", "Eaglecrest",
+"Foxglove", "Goldmere", "Highrock", "Ironbrook", "Juniper"
 
     # Hindi / Desi
-    "Rajput", "Yadav", "PandeyJi", "Brahman",
-    "Bhaukaal", "Neta", "Dabangg", "Badmash",
-    "Chora", "Tau", "Bhai", "Khiladi",
-    "Nawabi", "DesiBoy", "Hindustani",
-    "Jungbaaz", "Kattar", "RickshawKing",
-    "RoadKing", "DesiMunda", "Hero",
-    "Gunda", "Lathait", "GymLover",
-    "Aashiq", "Dilwala", "ChhapriKing",
-    "KaleshBoy", "SanskariBoy", "KaminaBoy",
+    "Brightforge", "Stonewatch", "Windcrest", "Nightbrook",
+"Silveroak", "Deepstone", "Ironvale", "Stormwatch",
+"Goldleaf", "Mooncrest", "Swiftarrow", "Blueharbor",
+"Ravenwood", "Winterhold", "Sunspire", "Frostvale",
+"Oakshield", "Riverstone", "Starcrest", "Cloudbreaker",
+"Emberwind", "Skyguard", "Wildgrove", "Ashwalker",
+"Flarewing", "Dawnwatch", "Mistcaller", "Highcliff",
+"Redstone", "Northwind", "Southridge", "Eastwatch",
+"Westbrook", "Silentpeak", "Trueblade", "Stronghold",
+"Brightwater", "Greyhawk", "Whiteoak", "Blackridge",
+"Firebrand", "Steelheart", "Longbow", "Seawarden",
+"Thunderpeak", "Crystalwind", "Wolfpine", "Eaglewatch",
+"Shadowbrook", "Dragonstone", "Falconcrest", "Stormgate",
+"Lightkeeper", "Stoneguard", "Moonwarden", "Ironcrest",
+"Skybreaker", "Windrunner", "Riverguard", "Starwarden"
 
     # Stylish / Gaming / Internet
     "Beast", "Monster", "Hunter", "Sniper",
@@ -162,7 +153,7 @@ class Config:
     "DangerBoy", "WantedMunda", "RowdyKing"
 ]
 
-    ADMIN_GOD_NAME = "😈 DEVIL GOD 😈"
+    ADMIN_GOD_NAME = " 👑 Master Exx 💸"
 
     if BOT_TOKEN == "8660092184:AAEBYIU6lBaVvS8M6MK372UU9qDCExDNYAM":
         logger.warning(
