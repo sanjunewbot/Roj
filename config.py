@@ -32,7 +32,7 @@ class Config:
 
     LOG_ID = os.environ.get(
         "LOG_ID",
-        "-1003959488076"
+        "-1002794066104"
     )
 
     ADMIN_IDS = [8002345109]
